@@ -66,7 +66,10 @@ export interface CandidateGraph {
   }>;
 }
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://168.144.189.164';
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 
+  (typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
+    ? '' 
+    : 'http://localhost:8000');
 
 // Mock values for offline fallbacks
 const MOCK_QUESTIONS: QuestionResponse[] = [
