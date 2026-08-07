@@ -20,5 +20,5 @@
 
 | # | Task | Assignee | Status | Notes |
 |---|------|----------|--------|-------|
-| 6 | Create responsive web conversational UI | Frontend Developer | [/] In Progress | Conversational wizard UI |
+| 6 | Create responsive web conversational UI | Frontend Developer | ✅ Done | Conversational wizard UI |
 | 7 | Set up automated deployment to Cloud Run | Unassigned | ⏳ Planned | YAML deployment setup |
