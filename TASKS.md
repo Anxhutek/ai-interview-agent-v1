@@ -9,10 +9,10 @@
 
 | # | Task | Assignee | Status | Notes |
 |---|------|----------|--------|-------|
-| 1 | Initialize FastAPI backend project structure | Backend Agent | 🔄 In Progress | Creating main.py, routers, models, services |
-| 2 | Implement AI integration service (Gemini + Breeth) | Backend Agent | 🔄 In Progress | Google Gemini for Q&A, Breeth for memory |
-| 3 | Design and implement interview session API | Backend Agent | 🔄 In Progress | POST /sessions, GET /sessions/{id} |
-| 4 | Build answer submission and evaluation endpoint | Backend Agent | 🔄 In Progress | POST /sessions/{id}/answer |
+| 1 | Initialize FastAPI backend project structure | Backend Agent | ✅ Done | main.py, routers, models, services created |
+| 2 | Implement AI integration service (Gemini + Breeth) | Backend Agent | ✅ Done | Google Gemini 2.0 Flash + Breeth memory |
+| 3 | Design and implement interview session API | Backend Agent | ✅ Done | POST /sessions, GET /sessions/{id} working |
+| 4 | Build answer submission and evaluation endpoint | Backend Agent | ✅ Done | POST /sessions/{id}/answer working |
 
 ---
 
@@ -20,7 +20,16 @@
 
 | # | Task | Assignee | Status | Notes |
 |---|------|----------|--------|-------|
-| 16 | VPS Deployment Setup | Backend Agent | 🔄 In Progress | nginx + systemd on 168.144.189.164 |
+|   |      |          |        |       |
+
+---
+
+## 🟢 Planned
+
+| # | Task | Assignee | Status | Notes |
+|---|------|----------|--------|-------|
+| 5 | Create health check endpoint | Backend Agent | ✅ Done | GET /health verified |
+| 16 | VPS Deployment Setup | Backend Agent | ✅ Done | Live at http://168.144.189.164 |
 
 ---
 
