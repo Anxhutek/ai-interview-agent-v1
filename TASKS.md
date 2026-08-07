@@ -9,10 +9,10 @@
 
 | # | Task | Assignee | Status | Notes |
 |---|------|----------|--------|-------|
-| 1 | Initialize FastAPI backend project structure | Backend Agent | 🟡 Planned | Create main.py, routers, models, services dirs |
-| 2 | Implement Breeth AI integration service | Backend Agent | 🟡 Planned | Question generation + answer evaluation |
-| 3 | Design and implement interview session API | Backend Agent | 🟡 Planned | POST /sessions, GET /sessions/{id} |
-| 4 | Build answer submission and evaluation endpoint | Backend Agent | 🟡 Planned | POST /sessions/{id}/answer |
+| 1 | Initialize FastAPI backend project structure | Backend Agent | 🔄 In Progress | Creating main.py, routers, models, services |
+| 2 | Implement AI integration service (Gemini + Breeth) | Backend Agent | 🔄 In Progress | Google Gemini for Q&A, Breeth for memory |
+| 3 | Design and implement interview session API | Backend Agent | 🔄 In Progress | POST /sessions, GET /sessions/{id} |
+| 4 | Build answer submission and evaluation endpoint | Backend Agent | 🔄 In Progress | POST /sessions/{id}/answer |
 
 ---
 
@@ -20,7 +20,7 @@
 
 | # | Task | Assignee | Status | Notes |
 |---|------|----------|--------|-------|
-|   |      |          |        |       |
+| 16 | VPS Deployment Setup | Backend Agent | 🔄 In Progress | nginx + systemd on 168.144.189.164 |
 
 ---
 
