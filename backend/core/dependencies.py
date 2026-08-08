@@ -54,6 +54,36 @@ async def get_current_admin(
         )
     return current_user
 
+async def require_admin_2fa(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: AsyncSession = Depends(get_db)
+) -> User:
+    user = await get_current_user(credentials, db)
+    if user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Administrator access required"
+        )
+
+    payload = decode_access_token(credentials.credentials) or {}
+
+    # Query Admin2FA status
+    from models.database import Admin2FA
+    stmt = select(Admin2FA).where(Admin2FA.admin_id == user.id)
+    res = await db.execute(stmt)
+    two_fa_record = res.scalar_one_or_none()
+
+    if two_fa_record and two_fa_record.enabled:
+        if not payload.get("admin_2fa_verified"):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="2FA verification required for admin access"
+            )
+
+    return user
+
+
+
 from core.config import settings
 
 from services.ai.gemini_provider import GeminiProvider

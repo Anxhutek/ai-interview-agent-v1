@@ -1,8 +1,20 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { getAdminCandidates, interviewApi, AdminCandidateItem, AiHealthResponse } from '@/lib/api';
+import {
+  getAdminCandidates,
+  interviewApi,
+  AdminCandidateItem,
+  AiHealthResponse,
+  getAdmin2FAStatus,
+  setupAdmin2FA,
+  enableAdmin2FA,
+  disableAdmin2FA,
+  regenerateAdminBackupCodes,
+  Admin2FASetupResult
+} from '@/lib/api';
 import Link from 'next/link';
+import Admin2FAModal from '@/components/Admin2FAModal';
 
 export default function AdminPage() {
   const [candidates, setCandidates] = useState<AdminCandidateItem[]>([]);
@@ -12,7 +24,26 @@ export default function AdminPage() {
   const [aiHealth, setAiHealth] = useState<AiHealthResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Active Tab: 'candidates' | 'security'
+  const [activeTab, setActiveTab] = useState<'candidates' | 'security'>('candidates');
+
+  // 2FA State
+  const [token, setToken] = useState<string>('');
+  const [is2FAEnabled, setIs2FAEnabled] = useState<boolean>(false);
+  const [setupData, setSetupData] = useState<Admin2FASetupResult | null>(null);
+  const [otpCode, setOtpCode] = useState('');
+  const [backupCodes, setBackupCodes] = useState<string[]>([]);
+  const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [is2FALoading, setIs2FALoading] = useState(false);
+
+  // Security Verification Modal for Disable / Regenerate Backup Codes
+  const [modalMode, setModalMode] = useState<'disable' | 'regenerate' | null>(null);
+  const [confirmPassword, setConfirmPassword] = useState('');
+
   useEffect(() => {
+    const storedToken = localStorage.getItem('token') || '';
+    setToken(storedToken);
+
     async function loadData() {
       setIsLoading(true);
       const [candData, healthData] = await Promise.all([
@@ -21,10 +52,69 @@ export default function AdminPage() {
       ]);
       setCandidates(candData);
       setAiHealth(healthData);
+
+      if (storedToken) {
+        const twoFaStatus = await getAdmin2FAStatus(storedToken);
+        setIs2FAEnabled(twoFaStatus.enabled);
+      }
       setIsLoading(false);
     }
     loadData();
   }, []);
+
+  const handleStart2FASetup = async () => {
+    setIs2FALoading(true);
+    setStatusMsg(null);
+    try {
+      const result = await setupAdmin2FA(token);
+      setSetupData(result);
+      setBackupCodes([]);
+    } catch (err: any) {
+      setStatusMsg({ type: 'error', text: err.message || 'Failed to start 2FA setup' });
+    } finally {
+      setIs2FALoading(false);
+    }
+  };
+
+  const handleEnable2FA = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpCode.trim()) return;
+
+    setIs2FALoading(true);
+    setStatusMsg(null);
+    try {
+      const res = await enableAdmin2FA(token, otpCode.trim());
+      setIs2FAEnabled(true);
+      setBackupCodes(res.backupCodes);
+      setSetupData(null);
+      setOtpCode('');
+      setStatusMsg({ type: 'success', text: 'Two-factor authentication successfully enabled!' });
+    } catch (err: any) {
+      setStatusMsg({ type: 'error', text: err.message || 'Invalid authentication code.' });
+    } finally {
+      setIs2FALoading(false);
+    }
+  };
+
+  const handleModalVerify = async (codeOrBackup: string) => {
+    if (!confirmPassword.trim()) {
+      setStatusMsg({ type: 'error', text: 'Current password is required.' });
+      return;
+    }
+
+    if (modalMode === 'disable') {
+      await disableAdmin2FA(token, confirmPassword, codeOrBackup);
+      setIs2FAEnabled(false);
+      setBackupCodes([]);
+      setStatusMsg({ type: 'success', text: '2FA has been disabled.' });
+    } else if (modalMode === 'regenerate') {
+      const res = await regenerateAdminBackupCodes(token, confirmPassword, codeOrBackup);
+      setBackupCodes(res.backupCodes);
+      setStatusMsg({ type: 'success', text: 'New backup codes generated. Store them safely.' });
+    }
+    setModalMode(null);
+    setConfirmPassword('');
+  };
 
   const filteredCandidates = candidates.filter((c) => {
     const matchesQuery =
@@ -42,13 +132,14 @@ export default function AdminPage() {
       : 0;
   const flaggedCount = candidates.filter((c) => c.integrityStatus === 'flagged').length;
 
+
   return (
     <main className="relative min-h-screen w-full flex flex-col items-center p-4 md:p-8 bg-[#09090b]">
       {/* Background Radial Glow */}
       <div className="radial-glow top-[-100px] left-[-100px]" />
 
       {/* Admin Header */}
-      <header className="relative z-10 w-full max-w-6xl flex items-center justify-between py-4 border-b border-zinc-800/60 mb-8">
+      <header className="relative z-10 w-full max-w-6xl flex items-center justify-between py-4 border-b border-zinc-800/60 mb-6">
         <div className="flex items-center space-x-3">
           <div className="h-9 w-9 rounded-lg bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
             <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -59,288 +150,380 @@ export default function AdminPage() {
             <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-zinc-100 to-zinc-400 bg-clip-text text-transparent font-outfit">
               Admin &amp; Proctoring Portal
             </h1>
-            <p className="text-xs text-zinc-500">Evaluation Engine Health &amp; Candidate Audits</p>
+            <p className="text-xs text-zinc-500">Evaluation Engine Health, Candidate Audits &amp; Security</p>
           </div>
         </div>
 
-        <Link
-          href="/"
-          className="px-4 py-2 text-xs font-medium text-zinc-300 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg transition-all flex items-center space-x-2"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          <span>Back to Simulator</span>
-        </Link>
+        <div className="flex items-center space-x-3">
+          {/* Navigation Tabs */}
+          <div className="flex bg-zinc-900/80 p-1 rounded-xl border border-zinc-800">
+            <button
+              onClick={() => setActiveTab('candidates')}
+              className={`px-3.5 py-1.5 text-xs font-medium rounded-lg transition-all ${
+                activeTab === 'candidates'
+                  ? 'bg-indigo-600 text-white shadow-md'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              Overview &amp; Candidates
+            </button>
+            <button
+              onClick={() => setActiveTab('security')}
+              className={`px-3.5 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center space-x-1.5 ${
+                activeTab === 'security'
+                  ? 'bg-indigo-600 text-white shadow-md'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              <span>Admin Security</span>
+            </button>
+          </div>
+
+          <Link
+            href="/"
+            className="px-4 py-2 text-xs font-medium text-zinc-300 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg transition-all flex items-center space-x-2"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            <span>Back to Simulator</span>
+          </Link>
+        </div>
       </header>
 
-      {/* AI Health & Architecture Monitor */}
-      {aiHealth && (
-        <section className="relative z-10 w-full max-w-6xl glass-card rounded-2xl p-5 mb-8 border border-zinc-800">
-          <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80 mb-4">
-            <div className="flex items-center space-x-2">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-300 font-outfit">
-                AI Provider &amp; Model Health Monitor
-              </h2>
+      {/* ADMIN SECURITY & 2FA TAB */}
+      {activeTab === 'security' && (
+        <section className="relative z-10 w-full max-w-4xl glass-card rounded-2xl p-6 mb-8 border border-zinc-800 space-y-6">
+          <div className="flex items-center justify-between pb-4 border-b border-zinc-800/80">
+            <div>
+              <h2 className="text-base font-bold text-zinc-100 font-outfit">Two-Factor Authentication (2FA)</h2>
+              <p className="text-xs text-zinc-400">Secure your admin account using a TOTP authenticator app (Google Authenticator, Authy, etc.).</p>
             </div>
-            <span className="text-[11px] text-zinc-500 font-mono">
-              System Latency: {aiHealth.systemLatencyMs}ms
-            </span>
+            {is2FAEnabled ? (
+              <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold rounded-full flex items-center space-x-1.5">
+                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>2FA Enabled</span>
+              </span>
+            ) : (
+              <span className="px-3 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold rounded-full">
+                2FA Disabled
+              </span>
+            )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Providers */}
-            {aiHealth.providers.map((p, idx) => (
-              <div key={idx} className="p-3.5 bg-zinc-900/50 rounded-xl border border-zinc-800/80 flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-semibold text-zinc-200">{p.name}</p>
-                  <p className="text-[10px] text-zinc-500">{p.isFallback ? 'Secondary Fallback' : 'Primary Evaluation Core'}</p>
-                </div>
-                <div className="flex flex-col items-end">
-                  <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-semibold text-emerald-400 bg-emerald-950/50 border border-emerald-900/40">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                    <span>Healthy</span>
-                  </span>
-                  <span className="text-[10px] text-zinc-500 font-mono mt-1">{p.latencyMs}ms</span>
-                </div>
-              </div>
-            ))}
+          {statusMsg && (
+            <div className={`p-3 rounded-xl text-xs font-medium flex items-center space-x-2 ${
+              statusMsg.type === 'success'
+                ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
+                : 'bg-rose-500/10 border border-rose-500/20 text-rose-400'
+            }`}>
+              <span>{statusMsg.text}</span>
+            </div>
+          )}
 
-            {/* Models */}
-            {aiHealth.models.slice(0, 2).map((m, idx) => (
-              <div key={idx} className="p-3.5 bg-zinc-900/50 rounded-xl border border-zinc-800/80 flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-semibold text-indigo-300 font-mono">{m.modelId}</p>
-                  <p className="text-[10px] text-zinc-500">{m.provider}</p>
+          {/* 2FA Disabled View */}
+          {!is2FAEnabled && !setupData && (
+            <div className="p-6 bg-zinc-900/40 rounded-xl border border-zinc-800/80 flex flex-col items-center justify-center text-center space-y-4">
+              <div className="h-12 w-12 rounded-2xl bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <div className="max-w-md">
+                <h3 className="text-sm font-semibold text-zinc-200 font-outfit">Enable 2FA Protection</h3>
+                <p className="text-xs text-zinc-400 mt-1">Protect sensitive admin APIs and candidate reports against unauthorized access by enforcing 2-step TOTP verification.</p>
+              </div>
+              <button
+                onClick={handleStart2FASetup}
+                disabled={is2FALoading}
+                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs rounded-xl shadow-lg shadow-indigo-600/20 transition-all"
+              >
+                {is2FALoading ? 'Initiating Setup...' : 'Enable 2FA'}
+              </button>
+            </div>
+          )}
+
+          {/* 2FA Setup Flow View */}
+          {!is2FAEnabled && setupData && (
+            <div className="p-6 bg-zinc-900/60 rounded-xl border border-zinc-800 space-y-6">
+              <h3 className="text-sm font-semibold text-zinc-100 font-outfit">Scan QR Code or Enter Key</h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                {/* QR Code */}
+                <div className="flex flex-col items-center justify-center p-4 bg-white rounded-xl shadow-md">
+                  <img src={setupData.qrCode} alt="TOTP QR Code" className="w-44 h-44 object-contain" />
+                  <span className="text-[11px] text-zinc-600 mt-2 font-mono">Scan with Authenticator App</span>
                 </div>
-                <div className="flex flex-col items-end">
-                  <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-semibold text-emerald-400 bg-emerald-950/50 border border-emerald-900/40">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                    <span>Active</span>
-                  </span>
-                  <span className="text-[10px] text-zinc-500 font-mono mt-1">{m.latencyMs}ms</span>
+
+                {/* Secret Key & Form */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-[11px] font-medium text-zinc-400 uppercase tracking-wider mb-1">Manual Setup Secret Key</label>
+                    <div className="p-3 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-200 font-mono text-sm tracking-wider break-all select-all">
+                      {setupData.secret}
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleEnable2FA} className="space-y-3">
+                    <label className="block text-[11px] font-medium text-zinc-400 uppercase tracking-wider">Enter 6-Digit Code to Verify</label>
+                    <input
+                      type="text"
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value)}
+                      placeholder="000000"
+                      maxLength={6}
+                      className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-100 text-center font-mono text-lg tracking-widest focus:outline-none focus:border-indigo-500"
+                    />
+                    <div className="flex items-center space-x-2 pt-2">
+                      <button
+                        type="submit"
+                        disabled={is2FALoading || !otpCode.trim()}
+                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs rounded-lg transition-all"
+                      >
+                        {is2FALoading ? 'Verifying...' : 'Verify & Enable'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSetupData(null)}
+                        className="px-4 py-2 bg-zinc-800 text-zinc-300 text-xs font-medium rounded-lg hover:bg-zinc-700"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
+          )}
+
+          {/* 2FA Enabled Management View */}
+          {is2FAEnabled && (
+            <div className="space-y-6">
+              <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="h-8 w-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-semibold text-emerald-300 font-outfit">Your Admin Account is Protected</h4>
+                    <p className="text-[11px] text-emerald-400/80">Every login attempt requires your 6-digit TOTP code or single-use backup recovery code.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setModalMode('regenerate')}
+                    className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium rounded-lg transition-all"
+                  >
+                    Regenerate Backup Codes
+                  </button>
+                  <button
+                    onClick={() => setModalMode('disable')}
+                    className="px-3 py-1.5 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 text-xs font-medium rounded-lg transition-all"
+                  >
+                    Disable 2FA
+                  </button>
+                </div>
+              </div>
+
+              {/* Display Backup Codes if available */}
+              {backupCodes.length > 0 && (
+                <div className="p-5 bg-zinc-900/60 border border-zinc-800 rounded-xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-semibold text-amber-400 uppercase tracking-wider font-outfit">Single-Use Backup Recovery Codes</h4>
+                    <span className="text-[10px] text-zinc-500">Store these in a safe password manager</span>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5 font-mono text-xs text-zinc-200">
+                    {backupCodes.map((code, idx) => (
+                      <div key={idx} className="p-2 bg-zinc-950 border border-zinc-800 rounded-md text-center select-all">
+                        {code}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </section>
       )}
 
-      {/* Metrics Cards Grid */}
-      <section className="relative z-10 w-full max-w-6xl grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="glass-card rounded-2xl p-5 flex items-center justify-between">
-          <div>
-            <p className="text-xs text-zinc-500 font-semibold uppercase tracking-wider font-outfit">Total Candidates</p>
-            <h2 className="text-3xl font-extrabold text-zinc-100 mt-1 font-outfit">{totalCandidates}</h2>
-          </div>
-          <div className="h-12 w-12 rounded-xl bg-indigo-950/50 border border-indigo-900/50 flex items-center justify-center text-indigo-400">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-          </div>
-        </div>
+      {/* OVERVIEW & CANDIDATES TAB */}
+      {activeTab === 'candidates' && (
+        <>
+          {/* AI Health & Architecture Monitor */}
+          {aiHealth && (
+            <section className="relative z-10 w-full max-w-6xl glass-card rounded-2xl p-5 mb-8 border border-zinc-800">
+              <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80 mb-4">
+                <div className="flex items-center space-x-2">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-300 font-outfit">
+                    AI Provider &amp; Model Health Monitor
+                  </h2>
+                </div>
+                <span className="text-[11px] text-zinc-500 font-mono">
+                  System Latency: {aiHealth.systemLatencyMs}ms
+                </span>
+              </div>
 
-        <div className="glass-card rounded-2xl p-5 flex items-center justify-between">
-          <div>
-            <p className="text-xs text-zinc-500 font-semibold uppercase tracking-wider font-outfit">Average System Score</p>
-            <h2 className="text-3xl font-extrabold text-indigo-400 mt-1 font-outfit">{avgSystemScore}/100</h2>
-          </div>
-          <div className="h-12 w-12 rounded-xl bg-emerald-950/50 border border-emerald-900/50 flex items-center justify-center text-emerald-400">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-        </div>
-
-        <div className="glass-card rounded-2xl p-5 flex items-center justify-between">
-          <div>
-            <p className="text-xs text-zinc-500 font-semibold uppercase tracking-wider font-outfit">Flagged Proctoring Sessions</p>
-            <h2 className="text-3xl font-extrabold text-red-400 mt-1 font-outfit">{flaggedCount}</h2>
-          </div>
-          <div className="h-12 w-12 rounded-xl bg-red-950/50 border border-red-900/50 flex items-center justify-center text-red-400">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-          </div>
-        </div>
-      </section>
-
-      {/* Candidate Table Controls */}
-      <section className="relative z-10 w-full max-w-6xl glass-card rounded-2xl p-6 border border-zinc-800">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-          <div className="relative flex-1">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search candidate by name, email, or role..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-900/60 border border-zinc-800 text-zinc-200 text-sm focus:border-indigo-500 outline-none"
-            />
-            <svg className="w-4 h-4 text-zinc-500 absolute left-3.5 top-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setFilterStatus('all')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                filterStatus === 'all'
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800'
-              }`}
-            >
-              All Statuses
-            </button>
-            <button
-              onClick={() => setFilterStatus('clean')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                filterStatus === 'clean'
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800'
-              }`}
-            >
-              Clean Integrity
-            </button>
-            <button
-              onClick={() => setFilterStatus('flagged')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                filterStatus === 'flagged'
-                  ? 'bg-red-600 text-white'
-                  : 'bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800'
-              }`}
-            >
-              Flagged Warning
-            </button>
-          </div>
-        </div>
-
-        {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-zinc-800 text-[11px] font-semibold text-zinc-500 uppercase tracking-wider">
-                <th className="py-3 px-4">Candidate</th>
-                <th className="py-3 px-4">Target Role</th>
-                <th className="py-3 px-4 text-center">Sessions</th>
-                <th className="py-3 px-4 text-center">Avg Score</th>
-                <th className="py-3 px-4 text-center">Proctoring Status</th>
-                <th className="py-3 px-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-800/60 text-sm">
-              {filteredCandidates.map((candidate) => (
-                <tr key={candidate.id} className="hover:bg-zinc-900/40 transition-colors">
-                  <td className="py-3.5 px-4 flex items-center space-x-3">
-                    <div className="h-9 w-9 rounded-full bg-zinc-900 border border-zinc-700 overflow-hidden flex items-center justify-center shrink-0">
-                      {candidate.avatarUrl ? (
-                        <img src={candidate.avatarUrl} alt="" className="h-full w-full object-cover" />
-                      ) : (
-                        <span className="text-xs font-bold text-indigo-400">{candidate.fullName.charAt(0)}</span>
-                      )}
-                    </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Providers */}
+                {aiHealth.providers.map((p, idx) => (
+                  <div key={idx} className="p-3.5 bg-zinc-900/50 rounded-xl border border-zinc-800/80 flex items-center justify-between">
                     <div>
-                      <p className="font-semibold text-zinc-200">{candidate.fullName}</p>
-                      <p className="text-xs text-zinc-500">{candidate.email}</p>
+                      <p className="text-xs font-semibold text-zinc-200">{p.name}</p>
+                      <p className="text-[10px] text-zinc-500">{p.isFallback ? 'Secondary Fallback' : 'Primary Evaluation Core'}</p>
                     </div>
-                  </td>
-                  <td className="py-3.5 px-4 text-zinc-300 text-xs font-medium">{candidate.targetRole}</td>
-                  <td className="py-3.5 px-4 text-center text-zinc-300 font-mono text-xs">{candidate.totalSessions}</td>
-                  <td className="py-3.5 px-4 text-center">
-                    <span className="inline-block px-2.5 py-1 text-xs font-bold text-indigo-400 bg-indigo-950/40 border border-indigo-900/50 rounded-md">
-                      {candidate.avgScore}/100
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 text-center">
-                    {candidate.integrityStatus === 'flagged' ? (
-                      <span className="inline-flex items-center space-x-1 px-2.5 py-1 text-[11px] font-semibold text-red-400 bg-red-950/40 border border-red-900/50 rounded-full">
-                        <span className="h-1.5 w-1.5 rounded-full bg-red-400 animate-pulse" />
-                        <span>Flagged ({candidate.warningCount} Warnings)</span>
+                    <div className="flex flex-col items-end">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-semibold uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        {p.status}
                       </span>
-                    ) : (
-                      <span className="inline-flex items-center space-x-1 px-2.5 py-1 text-[11px] font-semibold text-emerald-400 bg-emerald-950/40 border border-emerald-900/50 rounded-full">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                        <span>Clean Pass</span>
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-3.5 px-4 text-right">
-                    <button
-                      onClick={() => setSelectedCandidate(candidate)}
-                      className="px-3 py-1.5 text-xs font-medium text-indigo-400 hover:text-white bg-indigo-950/40 hover:bg-indigo-900/60 border border-indigo-900/50 rounded-lg transition-all"
-                    >
-                      View Report
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+                      <span className="text-[10px] text-zinc-400 mt-1">{p.latencyMs}ms</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
-      {/* Candidate Inspector Modal */}
-      {selectedCandidate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
-          <div className="relative w-full max-w-2xl glass-card rounded-2xl p-6 md:p-8 border border-zinc-800 shadow-2xl max-h-[85vh] overflow-y-auto custom-scrollbar">
-            <button
-              onClick={() => setSelectedCandidate(null)}
-              className="absolute top-4 right-4 text-zinc-500 hover:text-zinc-300"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-
-            <div className="flex items-center space-x-4 mb-6 pb-4 border-b border-zinc-800">
-              <div className="h-14 w-14 rounded-full bg-zinc-900 border-2 border-indigo-500 overflow-hidden flex items-center justify-center">
-                {selectedCandidate.avatarUrl ? (
-                  <img src={selectedCandidate.avatarUrl} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <span className="text-xl font-bold text-indigo-400">{selectedCandidate.fullName.charAt(0)}</span>
-                )}
+          {/* Stats Bar */}
+          <section className="relative z-10 w-full max-w-6xl grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+            <div className="glass-card p-4 rounded-xl border border-zinc-800 flex items-center space-x-4">
+              <div className="h-10 w-10 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
               </div>
               <div>
-                <h2 className="text-xl font-bold text-zinc-100 font-outfit">{selectedCandidate.fullName}</h2>
-                <p className="text-xs text-zinc-400">{selectedCandidate.email} &bull; {selectedCandidate.targetRole}</p>
+                <p className="text-xs text-zinc-500 uppercase tracking-wider font-outfit">Total Candidates</p>
+                <p className="text-xl font-bold text-zinc-100 font-outfit">{totalCandidates}</p>
               </div>
             </div>
 
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-zinc-900/50 rounded-xl border border-zinc-800">
-                  <p className="text-xs text-zinc-500">Overall Assessment Score</p>
-                  <p className="text-2xl font-bold text-indigo-400 mt-1">{selectedCandidate.avgScore}/100</p>
-                </div>
-                <div className="p-4 bg-zinc-900/50 rounded-xl border border-zinc-800">
-                  <p className="text-xs text-zinc-500">Proctoring Integrity</p>
-                  <p className={`text-lg font-bold mt-1 ${selectedCandidate.integrityStatus === 'flagged' ? 'text-red-400' : 'text-emerald-400'}`}>
-                    {selectedCandidate.integrityStatus.toUpperCase()} ({selectedCandidate.warningCount} Warnings)
-                  </p>
-                </div>
+            <div className="glass-card p-4 rounded-xl border border-zinc-800 flex items-center space-x-4">
+              <div className="h-10 w-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
               </div>
-
-              {/* Proctoring Timeline Event Log */}
               <div>
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-3">Proctoring Warning Timeline</h3>
-                <div className="space-y-2">
-                  {selectedCandidate.warningCount > 0 ? (
-                    <div className="p-3 bg-red-950/30 border border-red-900/40 rounded-xl text-xs text-red-300 flex items-start space-x-2">
-                      <svg className="w-4 h-4 text-red-400 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                      </svg>
-                      <div>
-                        <p className="font-semibold">Off-Screen Eye Movement Detected (Turn 3)</p>
-                        <p className="text-[10px] text-zinc-400 mt-0.5">Candidate looked away from screen for &gt; 3 seconds.</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-zinc-500 italic">No proctoring anomalies detected during the interview session.</p>
-                  )}
-                </div>
+                <p className="text-xs text-zinc-500 uppercase tracking-wider font-outfit">Average Assessment Score</p>
+                <p className="text-xl font-bold text-zinc-100 font-outfit">{avgSystemScore}%</p>
               </div>
             </div>
+
+            <div className="glass-card p-4 rounded-xl border border-zinc-800 flex items-center space-x-4">
+              <div className="h-10 w-10 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-xs text-zinc-500 uppercase tracking-wider font-outfit">Flagged Sessions</p>
+                <p className="text-xl font-bold text-zinc-100 font-outfit">{flaggedCount}</p>
+              </div>
+            </div>
+          </section>
+
+          {/* Candidates List Table */}
+          <section className="relative z-10 w-full max-w-6xl glass-card rounded-2xl p-6 border border-zinc-800">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-zinc-800/80 mb-6">
+              <h3 className="text-sm font-bold text-zinc-200 font-outfit uppercase tracking-wider">Candidate Audits</h3>
+              <div className="flex items-center space-x-3 w-full sm:w-auto">
+                <input
+                  type="text"
+                  placeholder="Search candidates..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="px-3.5 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-indigo-500"
+                />
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value as any)}
+                  className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-zinc-300 focus:outline-none focus:border-indigo-500"
+                >
+                  <option value="all">All Integrity</option>
+                  <option value="clean">Clean</option>
+                  <option value="flagged">Flagged</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-zinc-800/80 text-zinc-500 uppercase tracking-wider font-outfit">
+                    <th className="pb-3 font-semibold">Candidate</th>
+                    <th className="pb-3 font-semibold">Target Role</th>
+                    <th className="pb-3 font-semibold">Integrity Status</th>
+                    <th className="pb-3 font-semibold">Avg Score</th>
+                    <th className="pb-3 font-semibold">Last Active</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800/40">
+                  {filteredCandidates.map((cand) => (
+                    <tr key={cand.id} className="hover:bg-zinc-900/30 transition-colors">
+                      <td className="py-3.5 flex items-center space-x-3">
+                        <div className="h-8 w-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center font-bold text-zinc-300 text-xs">
+                          {cand.fullName.slice(0, 2).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-zinc-200">{cand.fullName}</p>
+                          <p className="text-[10px] text-zinc-500">{cand.email}</p>
+                        </div>
+                      </td>
+                      <td className="py-3.5 text-zinc-300">{cand.targetRole}</td>
+                      <td className="py-3.5">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${
+                          cand.integrityStatus === 'clean'
+                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                            : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                        }`}>
+                          {cand.integrityStatus}
+                        </span>
+                      </td>
+                      <td className="py-3.5 font-bold text-zinc-200">{cand.avgScore}%</td>
+                      <td className="py-3.5 text-zinc-500 font-mono">{cand.lastActive}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </>
+      )}
+
+      {/* Security Verification Modal for Disable / Regenerate */}
+      {modalMode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-zinc-950 border border-zinc-800 rounded-2xl p-6 space-y-4">
+            <h3 className="text-sm font-bold text-zinc-100 font-outfit">
+              {modalMode === 'disable' ? 'Confirm Disable 2FA' : 'Confirm Regenerate Backup Codes'}
+            </h3>
+            <p className="text-xs text-zinc-400">Please enter your current admin password and verification code to confirm this action.</p>
+
+            <div>
+              <label className="block text-[11px] font-medium text-zinc-400 uppercase mb-1">Current Password</label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Enter password"
+                className="w-full px-3.5 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-zinc-100 focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+
+            <Admin2FAModal
+              isOpen={true}
+              onClose={() => setModalMode(null)}
+              onVerify={handleModalVerify}
+              title="Security Verification"
+              subtitle="Enter TOTP code or backup code to confirm."
+            />
           </div>
         </div>
       )}

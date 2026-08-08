@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from core.config import settings
 from models.database import create_all_tables
-from routers import health, interview, auth, profile, proctoring, admin, admin_ai
+from routers import health, interview, auth, profile, proctoring, admin, admin_ai, admin_2fa
 
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -45,6 +45,8 @@ app.include_router(profile.router)
 app.include_router(proctoring.router)
 app.include_router(admin.router)
 app.include_router(admin_ai.router)
+app.include_router(admin_2fa.router)
+
 
 
 

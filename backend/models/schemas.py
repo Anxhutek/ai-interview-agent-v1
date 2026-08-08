@@ -191,4 +191,43 @@ class AIHealthResponse(BaseModel):
     models: List[dict]
     timestamp: datetime
 
+# Admin 2FA Schemas
+class Admin2FALoginResponse(BaseModel):
+    require_2fa: bool = False
+    pre_2fa_token: Optional[str] = None
+    access_token: Optional[str] = None
+    token_type: Optional[str] = "bearer"
+    user: Optional[UserProfileResponse] = None
+
+class Admin2FAVerifyRequest(BaseModel):
+    pre_2fa_token: str
+    code: str  # 6-digit TOTP code or backup code
+
+class Admin2FASetupResponse(BaseModel):
+    secret: str
+    qr_code: str  # Data URI base64 PNG image
+    otpauth_url: str
+
+class Admin2FAEnableRequest(BaseModel):
+    code: str
+
+class Admin2FAEnableResponse(BaseModel):
+    success: bool = True
+    enabled: bool = True
+    backup_codes: List[str]
+
+class Admin2FADisableRequest(BaseModel):
+    current_password: str
+    code_or_backup_code: str
+
+class Admin2FARegenerateBackupCodesRequest(BaseModel):
+    current_password: str
+    code_or_backup_code: str
+
+class AdminChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+    code_or_backup_code: Optional[str] = None
+
+
 

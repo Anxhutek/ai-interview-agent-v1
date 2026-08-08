@@ -438,16 +438,50 @@ export async function logProctorEvent(event: ProctoringEvent): Promise<{ status:
 
 // ── Auth APIs ─────────────────────────────────────
 
-export async function loginUser(email: string, password: string): Promise<AuthResponse> {
+export interface Admin2FALoginResult {
+  require2fa: boolean;
+  pre2faToken?: string;
+  token?: string;
+  user?: UserProfile;
+}
+
+export interface Admin2FASetupResult {
+  secret: string;
+  qrCode: string;
+  otpauthUrl: string;
+}
+
+export interface Admin2FAEnableResult {
+  success: boolean;
+  enabled: boolean;
+  backupCodes: string[];
+}
+
+export async function loginUser(email: string, password: string): Promise<Admin2FALoginResult> {
   try {
     const res = await fetch(`${BASE_URL}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     });
-    if (!res.ok) throw new Error('Invalid credentials');
-    return await res.json();
-  } catch {
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Invalid email or password');
+    }
+    const data = await res.json();
+    if (data.require_2fa) {
+      return {
+        require2fa: true,
+        pre2faToken: data.pre_2fa_token,
+        user: data.user
+      };
+    }
+    return {
+      require2fa: false,
+      token: data.access_token,
+      user: data.user
+    };
+  } catch (error: any) {
     const mockUser: UserProfile = {
       id: `usr-${Date.now()}`,
       email,
@@ -456,8 +490,103 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
       targetRole: 'Backend Engineer',
       createdAt: new Date().toISOString(),
     };
-    return { token: `jwt-token-${Date.now()}`, user: mockUser };
+    return { require2fa: false, token: `jwt-token-${Date.now()}`, user: mockUser };
   }
+}
+
+export async function verifyAdmin2FA(pre2faToken: string, code: string): Promise<{ token: string; user: UserProfile }> {
+  const res = await fetch(`${BASE_URL}/api/auth/admin/verify-2fa`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pre_2fa_token: pre2faToken, code }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Invalid authentication code.');
+  }
+  const data = await res.json();
+  return { token: data.access_token, user: data.user };
+}
+
+export async function getAdmin2FAStatus(token: string): Promise<{ enabled: boolean }> {
+  try {
+    const res = await fetch(`${BASE_URL}/api/admin/2fa/status`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) return { enabled: false };
+    const data = await res.json();
+    return { enabled: !!data.enabled };
+  } catch {
+    return { enabled: false };
+  }
+}
+
+export async function setupAdmin2FA(token: string): Promise<Admin2FASetupResult> {
+  const res = await fetch(`${BASE_URL}/api/admin/2fa/setup`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!res.ok) throw new Error('Failed to initiate 2FA setup');
+  const data = await res.json();
+  return {
+    secret: data.secret,
+    qrCode: data.qr_code,
+    otpauthUrl: data.otpauth_url
+  };
+}
+
+export async function enableAdmin2FA(token: string, code: string): Promise<Admin2FAEnableResult> {
+  const res = await fetch(`${BASE_URL}/api/admin/2fa/enable`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ code })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Invalid authentication code.');
+  }
+  const data = await res.json();
+  return {
+    success: true,
+    enabled: true,
+    backupCodes: data.backup_codes || []
+  };
+}
+
+export async function disableAdmin2FA(token: string, currentPassword: string, codeOrBackupCode: string): Promise<{ success: boolean }> {
+  const res = await fetch(`${BASE_URL}/api/admin/2fa/disable`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ current_password: currentPassword, code_or_backup_code: codeOrBackupCode })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to disable 2FA');
+  }
+  return await res.json();
+}
+
+export async function regenerateAdminBackupCodes(token: string, currentPassword: string, codeOrBackupCode: string): Promise<{ backupCodes: string[] }> {
+  const res = await fetch(`${BASE_URL}/api/admin/2fa/regenerate-backup-codes`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ current_password: currentPassword, code_or_backup_code: codeOrBackupCode })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Failed to regenerate backup codes');
+  }
+  const data = await res.json();
+  return { backupCodes: data.backup_codes || [] };
 }
 
 export async function registerUser(
@@ -486,6 +615,7 @@ export async function registerUser(
     return { token: `jwt-token-${Date.now()}`, user: mockUser };
   }
 }
+
 
 // ── Admin Candidate List API ──────────────────────
 

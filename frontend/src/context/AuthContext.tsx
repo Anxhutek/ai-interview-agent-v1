@@ -35,11 +35,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, pass: string) => {
     const res = await loginUser(email, pass);
-    setToken(res.token);
-    setUser(res.user);
-    localStorage.setItem('interview_agent_token', res.token);
-    localStorage.setItem('interview_agent_user', JSON.stringify(res.user));
+    if (res.require2fa) {
+      throw new Error('2FA_REQUIRED:' + (res.pre2faToken || ''));
+    }
+    if (res.token && res.user) {
+      setToken(res.token);
+      setUser(res.user);
+      localStorage.setItem('interview_agent_token', res.token);
+      localStorage.setItem('interview_agent_user', JSON.stringify(res.user));
+    }
   };
+
 
   const register = async (email: string, pass: string, name: string, targetRole: string) => {
     const res = await registerUser(email, pass, name, targetRole);

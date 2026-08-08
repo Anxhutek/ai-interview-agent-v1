@@ -107,7 +107,46 @@ class AnswerEvaluation(Base):
     turn = relationship('InterviewTurn', back_populates='evaluation')
 
 
+class Admin2FA(Base):
+    __tablename__ = 'admin_2fa'
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    admin_id = Column(String, ForeignKey('users.id'), unique=True, index=True, nullable=False)
+    enabled = Column(Boolean, default=False, nullable=False)
+    encrypted_totp_secret = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_used_at = Column(DateTime, nullable=True)
+
+    user = relationship('User', backref='two_factor_auth', uselist=False)
+
+
+class AdminBackupCode(Base):
+    __tablename__ = 'admin_backup_codes'
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    admin_id = Column(String, ForeignKey('users.id'), index=True, nullable=False)
+    code_hash = Column(String, nullable=False)
+    used_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship('User', backref='backup_codes')
+
+
+class SecurityAuditLog(Base):
+    __tablename__ = 'security_audit_logs'
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    user_id = Column(String, ForeignKey('users.id'), index=True, nullable=True)
+    event_type = Column(String, nullable=False)
+    ip_address = Column(String, nullable=True)
+    user_agent = Column(String, nullable=True)
+    details = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 async def create_all_tables():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
 

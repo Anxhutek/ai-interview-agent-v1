@@ -2,7 +2,9 @@ import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 from main import app
+from sqlalchemy.future import select
 from models.database import engine, Base, create_all_tables, SessionLocal, InterviewSession, InterviewTurn, AnswerEvaluation
+
 
 from services.ai.gemini_provider import GeminiProvider, GeminiAPIError
 from services.ai.groq_provider import GroqProvider, GroqAPIError

@@ -24,6 +24,13 @@ class Settings(BaseSettings):
     AI_REQUEST_TIMEOUT: float = 30.0
     AI_MODEL_CACHE_TTL: int = 3600
 
+    # Admin 2FA Configs
+    TOTP_ISSUER: str = 'AI-Interview-Agent'
+    ENCRYPTION_KEY: str = 'super-secret-encryption-key-for-2fa-secrets'
+    TOTP_RATE_LIMIT_ATTEMPTS: int = 5
+    TOTP_RATE_LIMIT_LOCKOUT_SECONDS: int = 300
+
     model_config = SettingsConfigDict(env_file='.env', env_file_encoding='utf-8', extra='ignore')
+
 
 settings = Settings()
