@@ -1,67 +1,98 @@
-# 📊 PROJECT STATE — AI Interview Agent
+# 📊 PROJECT STATE — The Interview Agent (Option 2)
 
-> **Last Updated:** 2026-08-07
-> **Status:** Active Development
+> **Status:** Active Development (Hackathon)
 > **Branch:** `master`
 
 ---
 
-## 🏗️ Architecture Diagram
+## 🏗️ System Architecture
 
-```mermaid
-graph TD
-    A[Frontend - React/Next.js] -->|REST API| B[Backend - FastAPI]
-    B -->|AI Processing| C[Breeth AI / Gemini API]
-    B -->|Data Storage| D[SQLite / Firestore]
-    B -->|WebSocket| A
-    C -->|Generate Questions| B
-    C -->|Evaluate Responses| B
-    B -->|Session Management| E[Redis Cache]
 ```
-
-### System Flow
-1. **User** selects role/domain for interview practice
-2. **Backend** generates contextual questions via AI (Breeth API)
-3. **Frontend** presents questions with timer and recording
-4. **Backend** evaluates answers, provides scores and feedback
-5. **Results** are stored and displayed as performance analytics
+┌─────────────────────────────────┐      ┌───────────────────────────────┐
+│     FastAPI Backend Router      │◀────▶│       Breeth Memory API       │
+│  (Session & Multi-Turn Flows)  │      │  (Intent-Aware Distillation)  │
+└─────────────────────────────────┘      └───────────────────────────────┘
+```
 
 ---
 
 ## 📡 API Contracts
 
-### Base URL: http://localhost:8000
+### Base URL: `http://localhost:8000` (or `http://168.144.189.164`)
 
 | Method | Endpoint | Request Body | Response Schema | Status |
 |--------|----------|--------------|-----------------|--------|
-| POST | `/api/v1/sessions` | `{ role, domain, difficulty }` | `{ session_id, questions[] }` | 🟡 Planned |
-| GET | `/api/v1/sessions/{id}` | - | `{ session, questions, status }` | 🟡 Planned |
-| POST | `/api/v1/sessions/{id}/answer` | `{ question_id, answer_text }` | `{ evaluation, score, feedback }` | 🟡 Planned |
-| GET | `/api/v1/sessions/{id}/results` | - | `{ overall_score, breakdown[] }` | 🟡 Planned |
-| POST | `/api/v1/questions/generate` | `{ role, domain, count }` | `{ questions[] }` | 🟡 Planned |
-| GET | `/api/v1/health` | - | `{ status, version }` | 🟡 Planned |
+| `POST` | `/api/interview/start` | `{ "candidateId": "string", "candidateName": "string" }` | `{ "sessionId": "string", "firstQuestion": "string" }` | 🟢 Active |
+| `POST` | `/api/interview/message` | `{ "sessionId": "string", "message": "string" }` | `{ "reply": "string", "isFinished": false }` | 🟢 Active |
+| `GET`  | `/api/interview/feedback` | `?sessionId=abc` | `{ "feedback": "string", "score": 85, "distilledProfile": "string" }` | 🟢 Active |
+| `GET`  | `/health` | - | `{ "status": "ok", "version": "0.1.0" }` | 🟢 Active |
 
 ---
 
-## 📁 Key Files Reference
+## 🧠 Breeth API Memory Layer Integration
 
-### Backend (FastAPI)
-- `backend/main.py` — FastAPI application entry point
-- `backend/routers/` — API route handlers
-- `backend/models/` — Pydantic schemas and DB models
-- `backend/services/` — Business logic (AI integration, evaluation)
-- `backend/core/config.py` — Configuration and environment variables
+The application integrates exclusively with the Breeth memory layer (`ck_live_5AA5_ZKx2Sbm18lY3RH9VS-Z034XoWhaT6pTdIcWbB0`) to store candidate responses and extract traits, decisions, and distilled profiles.
 
-### Frontend (React/Next.js)
-- `frontend/src/` — React components and pages
-- `frontend/src/api/` — API client functions
+### 1. Base URL & Authentication
+- **Base URL**: `https://api.thebreeth.com`
+- **Headers**:
+  ```http
+  Authorization: Bearer <BREETH_API_KEY>
+  Content-Type: application/json
+  ```
 
----
+### 2. Ingesting Interview Turns (Episodes)
+Whenever a candidate replies to a question, the turn is logged as a prose episode:
+- **Endpoint**: `POST /v1/episodes`
+- **Request Body**:
+  ```json
+  {
+    "content": "Candidate (John Doe) answered question about async programming: 'I prefer async/await because it reduces tail latency and handles I/O bottlenecks effectively.'",
+    "group_id": "candidate_john_doe",
+    "source_description": "interview_turn",
+    "extract_intent": true
+  }
+  ```
+- **Description**: Setting `extract_intent: true` enables Breeth to perform synchronous/asynchronous trait extraction, connecting observations to reasoning patterns.
 
-## 🔑 Technical Key Decisions
+### 3. Retrieving Distilled Profiles & Facts
+At the end of the interview or during evaluation, the system lazy-loads the distilled profile narrative and extracted entities:
+- **Endpoint**: `GET /v1/graph/nodes/{name}/details` (URL-encoded name, e.g., `/v1/graph/nodes/John%20Doe/details`)
+- **Response Shape**:
+  ```json
+  {
+    "entity": {
+      "uuid": "a7b1...",
+      "name": "John Doe",
+      "summary": "Candidate showing backend leaning with focus on async performance.",
+      "knot_narrative": "John Doe exhibits consistent preference for tail-latency optimizations and structured error handling. Bet on async Rust for production loads.",
+      "knot_score": 85.0
+    },
+    "neighbors": [
+      {
+        "peer": "Async Rust",
+        "direction": "out",
+        "fact": "John Doe prefers async Rust over Go for I/O-heavy loads",
+        "intent_meta": {
+          "edge_kind": "preference",
+          "cognitive_pattern": "cost-vs-quality tradeoff",
+          "why_connected": "Tail latency optimization is preferred over development velocity."
+        }
+      }
+    ]
+  }
+  ```
+- **Integration**: The `knot_narrative` maps to the `distilledProfile` in the feedback endpoint response.
 
-- **AI Provider:** Breeth API (API Key: provided) for question generation and answer evaluation
-- **Backend Framework:** FastAPI with async endpoints
-- **Database:** SQLite for development, Firestore for production
-- **Authentication:** Session-based for MVP
-- **Real-time:** WebSocket for live interview experience
+### 4. Hybrid Search over Candidate Graph
+To query candidate traits or specific question answers programmatically:
+- **Endpoint**: `POST /v1/search`
+- **Request Body**:
+  ```json
+  {
+    "query": "What are John Doe's preferences on backend databases?",
+    "group_id": "candidate_john_doe",
+    "limit": 5
+  }
+  ```
+- **Response**: Returns a ranked list of edges with attribution and intent metadata.

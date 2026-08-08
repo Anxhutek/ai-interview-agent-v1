@@ -1,142 +1,138 @@
-import json
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 from datetime import datetime
-from models.database import InterviewSession, Question, Answer
-from models.schemas import SessionCreate, SessionResponse, AnswerSubmit, EvaluationResponse, SessionResultsResponse
-from services.ai_service import AIService
-from services.breeth_service import BreethService
 import logging
+
+from models.database import InterviewSession, InterviewTurn
+from models.schemas import (
+    InterviewStartRequest,
+    InterviewStartResponse,
+    InterviewMessageRequest,
+    InterviewMessageResponse,
+    InterviewFeedbackResponse
+)
+from services.breeth_service import BreethService
+from services.curriculum_router import CurriculumRouter
 
 logger = logging.getLogger(__name__)
 
 class SessionService:
-    def __init__(self, db: AsyncSession, ai_service: AIService, breeth_service: BreethService):
+    def __init__(self, db: AsyncSession, breeth_service: BreethService, curriculum_router: CurriculumRouter):
         self.db = db
-        self.ai_service = ai_service
         self.breeth_service = breeth_service
+        self.router = curriculum_router
 
-    async def create_session(self, data: SessionCreate) -> SessionResponse:
-        db_session = InterviewSession(
-            role=data.role,
-            domain=data.domain,
-            difficulty=data.difficulty,
-            status='active'
+    async def start_interview(self, data: InterviewStartRequest) -> InterviewStartResponse:
+        first_q = self.router.get_initial_question()
+        
+        session = InterviewSession(
+            candidate_id=data.candidateId,
+            candidate_name=data.candidateName,
+            role="Backend Developer",
+            domain="Systems & Architecture",
+            difficulty="medium",
+            status="active",
+            turn_count=0,
+            current_question=first_q,
+            is_finished=False
         )
-        self.db.add(db_session)
-        await self.db.flush()
-
-        ai_questions = await self.ai_service.generate_questions(
-            role=data.role,
-            domain=data.domain,
-            difficulty=data.difficulty,
-            count=data.num_questions
-        )
-
-        for idx, q_data in enumerate(ai_questions):
-            db_question = Question(
-                session_id=db_session.id,
-                text=q_data.get('text', 'Missing question text'),
-                category=q_data.get('category', 'General'),
-                difficulty=q_data.get('difficulty', data.difficulty),
-                order_num=idx + 1
-            )
-            self.db.add(db_question)
-
+        self.db.add(session)
         await self.db.commit()
-        await self.db.refresh(db_session, ['questions'])
-        return db_session
+        await self.db.refresh(session)
+        
+        logger.info(f"Started interview session {session.id} for candidate {data.candidateName}")
+        return InterviewStartResponse(
+            sessionId=session.id,
+            firstQuestion=first_q
+        )
 
-    async def get_session(self, session_id: str) -> SessionResponse:
-        stmt = select(InterviewSession).options(selectinload(InterviewSession.questions)).where(InterviewSession.id == session_id)
+    async def process_message(self, data: InterviewMessageRequest) -> InterviewMessageResponse:
+        stmt = select(InterviewSession).where(InterviewSession.id == data.sessionId)
         result = await self.db.execute(stmt)
         session = result.scalar_one_or_none()
+        
         if not session:
-            raise ValueError("Session not found")
-        return session
-
-    async def submit_answer(self, session_id: str, data: AnswerSubmit) -> EvaluationResponse:
-        stmt = select(Question).where(Question.id == data.question_id, Question.session_id == session_id)
-        result = await self.db.execute(stmt)
-        question = result.scalar_one_or_none()
-        if not question:
-            raise ValueError("Question not found")
-
-        session_stmt = select(InterviewSession).where(InterviewSession.id == session_id)
-        session_result = await self.db.execute(session_stmt)
-        db_session = session_result.scalar_one()
-
-        ai_eval = await self.ai_service.evaluate_answer(
-            question_text=question.text,
-            answer_text=data.answer_text,
-            role=db_session.role,
-            domain=db_session.domain
-        )
-
-        answer = Answer(
-            question_id=question.id,
-            answer_text=data.answer_text,
-            score=ai_eval.get('score', 0.0),
-            feedback=ai_eval.get('feedback', ''),
-            evaluated_at=datetime.utcnow()
-        )
-        self.db.add(answer)
-        await self.db.commit()
-
-        await self.breeth_service.store_memory(
-            session_id=session_id,
-            content=f"Q: {question.text} | A: {data.answer_text} | Score: {answer.score}",
-            metadata={"question_id": question.id, "type": "interview_qa"}
-        )
-
-        return EvaluationResponse(
-            question_id=question.id,
-            score=answer.score,
-            feedback=answer.feedback,
-            strengths=ai_eval.get('strengths', []),
-            improvements=ai_eval.get('improvements', [])
-        )
-
-    async def get_results(self, session_id: str) -> SessionResultsResponse:
-        stmt = select(InterviewSession).options(
-            selectinload(InterviewSession.questions).selectinload(Question.answer)
-        ).where(InterviewSession.id == session_id)
+            raise ValueError(f"Session '{data.sessionId}' not found")
         
-        result = await self.db.execute(stmt)
-        db_session = result.scalar_one_or_none()
-        if not db_session:
-            raise ValueError("Session not found")
-
-        total_questions = len(db_session.questions)
-        answered_questions = [q for q in db_session.questions if q.answer is not None]
-        answered_count = len(answered_questions)
-        
-        evaluations = []
-        total_score = 0.0
-        
-        for q in answered_questions:
-            total_score += (q.answer.score or 0.0)
-            evaluations.append(
-                EvaluationResponse(
-                    question_id=q.id,
-                    score=q.answer.score or 0.0,
-                    feedback=q.answer.feedback or '',
-                    strengths=[],
-                    improvements=[]
-                )
+        if session.is_finished:
+            return InterviewMessageResponse(
+                reply="This interview session is already completed. Please check your feedback!",
+                isFinished=True
             )
 
-        overall_score = (total_score / answered_count) if answered_count > 0 else 0.0
+        # 1. Ingest turn to Breeth memory layer
+        group_id = f"candidate_{session.candidate_id}"
+        episode_content = (
+            f"Candidate ({session.candidate_name}) answered question about "
+            f"'{session.current_question}': '{data.message}'"
+        )
+        ingest_res = await self.breeth_service.ingest_episode(
+            content=episode_content,
+            group_id=group_id,
+            source_description="interview_turn",
+            extract_intent=True
+        )
+        episode_id = ingest_res.get("uuid") or ingest_res.get("id")
 
-        db_session.status = 'completed'
+        # 2. Record Turn in local DB
+        turn = InterviewTurn(
+            session_id=session.id,
+            turn_index=session.turn_count,
+            question_text=session.current_question or "",
+            answer_text=data.message,
+            breeth_episode_id=str(episode_id) if episode_id else None
+        )
+        self.db.add(turn)
+
+        # 3. Query Breeth hybrid search for candidate context
+        search_res = await self.breeth_service.search_memory(
+            query=f"What are {session.candidate_name}'s backend preferences?",
+            group_id=group_id,
+            limit=3
+        )
+        search_results = search_res.get("results", [])
+
+        # 4. Route next question or finish via CurriculumRouter
+        reply, is_finished = self.router.process_turn(
+            turn_index=session.turn_count,
+            candidate_message=data.message,
+            breeth_search_results=search_results
+        )
+
+        # 5. Update session state
+        session.turn_count += 1
+        session.current_question = reply
+        session.is_finished = is_finished
+        if is_finished:
+            session.status = "completed"
+
         await self.db.commit()
 
-        return SessionResultsResponse(
-            session_id=session_id,
-            overall_score=overall_score,
-            total_questions=total_questions,
-            answered_count=answered_count,
-            evaluations=evaluations,
-            summary=f"Completed {answered_count} out of {total_questions} questions with an average score of {overall_score:.1f}."
+        return InterviewMessageResponse(
+            reply=reply,
+            isFinished=is_finished
+        )
+
+    async def get_feedback(self, session_id: str) -> InterviewFeedbackResponse:
+        stmt = select(InterviewSession).where(InterviewSession.id == session_id)
+        result = await self.db.execute(stmt)
+        session = result.scalar_one_or_none()
+
+        if not session:
+            raise ValueError(f"Session '{session_id}' not found")
+
+        node_name = session.candidate_name or "Candidate"
+        node_details = await self.breeth_service.get_node_details(node_name)
+
+        feedback_text, score, distilled_profile = self.router.generate_feedback_report(
+            candidate_name=node_name,
+            turn_count=session.turn_count,
+            breeth_node_details=node_details
+        )
+
+        return InterviewFeedbackResponse(
+            feedback=feedback_text,
+            score=score,
+            distilledProfile=distilled_profile
         )

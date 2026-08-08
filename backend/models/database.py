@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import declarative_base, relationship
-from sqlalchemy import Column, String, Integer, Float, DateTime, ForeignKey, Text
+from sqlalchemy import Column, String, Integer, Float, DateTime, ForeignKey, Text, Boolean
 from datetime import datetime
 import uuid
 from core.config import settings
@@ -16,42 +16,32 @@ class InterviewSession(Base):
     __tablename__ = 'interview_sessions'
     
     id = Column(String, primary_key=True, default=generate_uuid)
-    role = Column(String, nullable=False)
-    domain = Column(String, nullable=False)
-    difficulty = Column(String, nullable=False)
-    status = Column(String, nullable=False)
+    candidate_id = Column(String, nullable=True)
+    candidate_name = Column(String, nullable=True)
+    role = Column(String, nullable=True, default='Software Engineer')
+    domain = Column(String, nullable=True, default='Backend Architecture')
+    difficulty = Column(String, nullable=True, default='medium')
+    status = Column(String, nullable=False, default='active')
+    turn_count = Column(Integer, default=0)
+    current_question = Column(Text, nullable=True)
+    is_finished = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    questions = relationship('Question', back_populates='session', cascade='all, delete-orphan')
+    turns = relationship('InterviewTurn', back_populates='session', cascade='all, delete-orphan')
 
-
-class Question(Base):
-    __tablename__ = 'questions'
+class InterviewTurn(Base):
+    __tablename__ = 'interview_turns'
     
     id = Column(String, primary_key=True, default=generate_uuid)
     session_id = Column(String, ForeignKey('interview_sessions.id'), nullable=False)
-    text = Column(Text, nullable=False)
-    category = Column(String, nullable=False)
-    difficulty = Column(String, nullable=False)
-    order_num = Column(Integer, nullable=False)
+    turn_index = Column(Integer, nullable=False)
+    question_text = Column(Text, nullable=False)
+    answer_text = Column(Text, nullable=True)
+    breeth_episode_id = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     
-    session = relationship('InterviewSession', back_populates='questions')
-    answer = relationship('Answer', back_populates='question', uselist=False, cascade='all, delete-orphan')
-
-
-class Answer(Base):
-    __tablename__ = 'answers'
-    
-    id = Column(String, primary_key=True, default=generate_uuid)
-    question_id = Column(String, ForeignKey('questions.id'), nullable=False, unique=True)
-    answer_text = Column(Text, nullable=False)
-    score = Column(Float, nullable=True)
-    feedback = Column(Text, nullable=True)
-    evaluated_at = Column(DateTime, nullable=True)
-    
-    question = relationship('Question', back_populates='answer')
+    session = relationship('InterviewSession', back_populates='turns')
 
 async def create_all_tables():
     async with engine.begin() as conn:
