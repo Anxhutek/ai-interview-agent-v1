@@ -2,9 +2,15 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useInterview } from '../hooks/useInterview';
+import { useAuth } from '@/context/AuthContext';
+import { AuthModal } from '@/components/AuthModal';
+import { ProfileModal } from '@/components/ProfileModal';
+import { ProctoringCam } from '@/components/ProctoringCam';
 import type { BreethGraphNeighbor } from '@/lib/api';
+import Link from 'next/link';
 
 export default function Home() {
+  const { user, logout } = useAuth();
   const {
     stage,
     sessionId,
@@ -21,10 +27,22 @@ export default function Home() {
     requestFeedback,
   } = useInterview();
 
-  // Local state for setup form
-  const [formName, setFormName] = useState('');
-  const [formId, setFormId] = useState('');
+  // Local state for modals & forms
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  const [formName, setFormName] = useState(user?.fullName || '');
+  const [formId, setFormId] = useState(user?.email || '');
   const [isLoading, setIsLoading] = useState(false);
+  const [proctoringWarnings, setProctoringWarnings] = useState(0);
+
+  // Sync user profile data to form fields when user logs in
+  useEffect(() => {
+    if (user) {
+      setFormName(user.fullName);
+      setFormId(user.email);
+    }
+  }, [user]);
 
   // Input state for messaging
   const [inputText, setInputText] = useState('');
@@ -37,17 +55,14 @@ export default function Home() {
     (BreethGraphNeighbor & { isRoot?: boolean }) | null
   >(null);
 
-  // Total questions in the curriculum
   const TOTAL_QUESTIONS = 8;
 
-  // Auto scroll to bottom on new messages
   useEffect(() => {
     if (chatEndRef.current) {
       chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [dialogue, isTyping]);
 
-  // Set default selected node for graph details
   useEffect(() => {
     if (graph) {
       setSelectedNode({
@@ -67,7 +82,7 @@ export default function Home() {
   const handleStart = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    await beginInterview(formId, formName);
+    await beginInterview(formId || 'candidate-1', formName || 'Candidate');
     setIsLoading(false);
   };
 
@@ -92,9 +107,13 @@ export default function Home() {
 
   return (
     <main className="relative min-h-screen w-full flex flex-col items-center justify-between p-4 md:p-8 overflow-hidden bg-[#09090b]">
-      {/* Background Radial Glow Effects */}
-      <div className="radial-glow top-[-100px] left-[-100px]"></div>
-      <div className="radial-glow-secondary bottom-[-100px] right-[-100px]"></div>
+      {/* Background Glows */}
+      <div className="radial-glow top-[-100px] left-[-100px]" />
+      <div className="radial-glow-secondary bottom-[-100px] right-[-100px]" />
+
+      {/* Auth & Profile Modals */}
+      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
+      <ProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
 
       {/* Header */}
       <header className="relative z-10 w-full max-w-6xl flex items-center justify-between py-4 border-b border-zinc-800/60 mb-6">
@@ -108,21 +127,69 @@ export default function Home() {
             <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-zinc-100 to-zinc-400 bg-clip-text text-transparent font-outfit">
               The Interview Agent
             </h1>
-            <p className="text-xs text-zinc-500">Powered by Breeth Memory Distillation Protocol</p>
+            <p className="text-xs text-zinc-500">Breeth Memory Layer &amp; Live Proctoring Protocol</p>
           </div>
         </div>
 
-        {stage !== 'setup' && (
-          <button
-            onClick={restart}
-            className="px-3.5 py-1.5 text-xs font-medium text-zinc-400 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg transition-all flex items-center space-x-1.5"
+        {/* User Navigation Controls */}
+        <div className="flex items-center space-x-3">
+          {/* Admin Dashboard Navigation Button */}
+          <Link
+            href="/admin"
+            className="px-3 py-1.5 text-xs font-medium text-violet-400 hover:text-white bg-violet-950/40 hover:bg-violet-900/60 border border-violet-900/50 rounded-lg transition-all flex items-center space-x-1.5"
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.213 6H16" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
-            <span>Reset Session</span>
-          </button>
-        )}
+            <span>Admin Panel</span>
+          </Link>
+
+          {user ? (
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setIsProfileOpen(true)}
+                className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-indigo-500/50 transition-all"
+              >
+                <div className="h-5 w-5 rounded-full bg-indigo-600 overflow-hidden flex items-center justify-center text-[10px] font-bold text-white">
+                  {user.avatarUrl ? (
+                    <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    user.fullName.charAt(0).toUpperCase()
+                  )}
+                </div>
+                <span className="text-xs text-zinc-200 font-medium">{user.fullName}</span>
+              </button>
+              <button
+                onClick={logout}
+                className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors p-1"
+                title="Sign Out"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setIsAuthOpen(true)}
+              className="px-3.5 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 rounded-lg transition-all shadow-md shadow-indigo-500/20"
+            >
+              Sign In / Profile
+            </button>
+          )}
+
+          {stage !== 'setup' && (
+            <button
+              onClick={restart}
+              className="px-3.5 py-1.5 text-xs font-medium text-zinc-400 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg transition-all flex items-center space-x-1.5"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.213 6H16" />
+              </svg>
+              <span>Reset</span>
+            </button>
+          )}
+        </div>
       </header>
 
       {/* STAGE 1: SETUP */}
@@ -131,7 +198,9 @@ export default function Home() {
           <div className="glass-card rounded-2xl p-6 md:p-8">
             <div className="text-center mb-6">
               <h2 className="text-2xl font-semibold tracking-tight text-zinc-100 font-outfit">Start Your Interview</h2>
-              <p className="text-sm text-zinc-400 mt-1">Enter your details to begin an 8-module technical deep-dive powered by Breeth memory distillation.</p>
+              <p className="text-sm text-zinc-400 mt-1">
+                Enter your candidate credentials to launch an 8-module proctored technical interview.
+              </p>
             </div>
 
             {error && (
@@ -153,7 +222,7 @@ export default function Home() {
                   id="name"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
-                  placeholder="e.g. John Doe"
+                  placeholder="e.g. Sarah Connor"
                   required
                   disabled={isLoading}
                   className="w-full px-4 py-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none text-zinc-200 placeholder-zinc-600 transition-all text-sm"
@@ -169,12 +238,33 @@ export default function Home() {
                   id="candidateId"
                   value={formId}
                   onChange={(e) => setFormId(e.target.value)}
-                  placeholder="e.g. john.doe@example.com"
+                  placeholder="e.g. sarah.c@example.com"
                   required
                   disabled={isLoading}
                   className="w-full px-4 py-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none text-zinc-200 placeholder-zinc-600 transition-all text-sm"
                 />
               </div>
+
+              {/* Resume & Avatar quick status badge */}
+              {user && (
+                <div className="p-3 bg-zinc-900/50 border border-zinc-800/80 rounded-xl flex items-center justify-between text-xs">
+                  <div className="flex items-center space-x-2">
+                    <svg className="w-4 h-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span className="text-zinc-300 font-medium">
+                      {user.resumeFileName ? `Resume: ${user.resumeFileName}` : 'No resume uploaded'}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsProfileOpen(true)}
+                    className="text-indigo-400 hover:text-indigo-300 font-medium"
+                  >
+                    Edit Profile
+                  </button>
+                </div>
+              )}
 
               <button
                 type="submit"
@@ -187,7 +277,7 @@ export default function Home() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                    <span>Connecting to Breeth...</span>
+                    <span>Initializing Session...</span>
                   </>
                 ) : (
                   <span>Start Interview Simulation</span>
@@ -201,6 +291,13 @@ export default function Home() {
       {/* STAGE 2: ACTIVE CHAT */}
       {stage === 'chat' && (
         <section className="relative z-10 w-full max-w-6xl flex-grow grid grid-cols-1 lg:grid-cols-4 gap-6 animate-slide-up">
+          {/* Live Proctoring Webcam */}
+          <ProctoringCam
+            sessionId={sessionId || 'session'}
+            isActive={stage === 'chat'}
+            onWarningTriggered={(count) => setProctoringWarnings(count)}
+          />
+
           {/* Left panel: Info & Statistics */}
           <div className="lg:col-span-1 flex flex-col space-y-4">
             <div className="glass-card rounded-xl p-4 flex flex-col space-y-3">
@@ -214,20 +311,20 @@ export default function Home() {
                 <p className="text-xs font-mono text-zinc-300 break-all">{sessionId}</p>
               </div>
               <div className="pt-2 border-t border-zinc-800/60">
-                <p className="text-xs text-zinc-400">Evaluation Core</p>
+                <p className="text-xs text-zinc-400">Target Role</p>
                 <span className="inline-block mt-1 px-2.5 py-1 text-xs font-medium text-indigo-400 bg-indigo-950/40 border border-indigo-900/50 rounded-full">
-                  Systems &amp; Architecture
+                  {user?.targetRole || 'Systems Architecture'}
                 </span>
               </div>
             </div>
 
             <div className="glass-card rounded-xl p-4 flex flex-col space-y-3">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 font-outfit">Metrics</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 font-outfit">Live Metrics</h3>
               <div>
                 <div className="flex justify-between items-center text-xs mb-1">
                   <span className="text-zinc-400">Breeth Memory Layer</span>
                   <span className="text-green-400 font-medium animate-pulse flex items-center space-x-1">
-                    <span className="h-1.5 w-1.5 rounded-full bg-green-400"></span>
+                    <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
                     <span>Synced</span>
                   </span>
                 </div>
@@ -235,7 +332,21 @@ export default function Home() {
                   <div
                     className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full transition-all duration-500"
                     style={{ width: `${Math.min(((turnCount + 1) / TOTAL_QUESTIONS) * 100, 100)}%` }}
-                  ></div>
+                  />
+                </div>
+              </div>
+
+              {/* Proctoring Warning Badge */}
+              <div className="pt-2 border-t border-zinc-800/60">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-zinc-400">Eye/Face Integrity</span>
+                  {proctoringWarnings > 0 ? (
+                    <span className="text-red-400 font-bold font-mono">
+                      ⚠️ {proctoringWarnings} Warning{proctoringWarnings > 1 ? 's' : ''}
+                    </span>
+                  ) : (
+                    <span className="text-emerald-400 font-medium">✓ Clean</span>
+                  )}
                 </div>
               </div>
 
@@ -251,7 +362,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Show "Get Feedback" button when interview is finished */}
             {isFinished && (
               <button
                 onClick={requestFeedback}
@@ -269,7 +379,7 @@ export default function Home() {
           <div className="lg:col-span-3 glass-card rounded-xl flex flex-col h-[65vh] md:h-[70vh] overflow-hidden">
             <div className="px-6 py-4 border-b border-zinc-800/60 bg-zinc-900/40 flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <div className={`h-2 w-2 rounded-full ${isFinished ? 'bg-emerald-500' : 'bg-indigo-500 animate-ping'}`}></div>
+                <div className={`h-2 w-2 rounded-full ${isFinished ? 'bg-emerald-500' : 'bg-indigo-500 animate-ping'}`} />
                 <h3 className="font-semibold text-sm text-zinc-200">
                   {isFinished ? 'Interview Complete' : 'Interview Conversation Loop'}
                 </h3>
@@ -285,7 +395,7 @@ export default function Home() {
                   key={msg.id}
                   className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
                 >
-                  <div className={`flex items-start space-x-2.5 max-w-[85%] md:max-w-[75%]`}>
+                  <div className="flex items-start space-x-2.5 max-w-[85%] md:max-w-[75%]">
                     {msg.role === 'agent' && (
                       <div className="h-8 w-8 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0 mt-0.5">
                         <svg className="w-4 h-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -320,9 +430,9 @@ export default function Home() {
                       </svg>
                     </div>
                     <div className="bg-zinc-900 border border-zinc-800 rounded-2xl rounded-tl-none px-4 py-3 flex space-x-1.5 items-center">
-                      <span className="h-2 w-2 bg-zinc-500 rounded-full typing-dot"></span>
-                      <span className="h-2 w-2 bg-zinc-500 rounded-full typing-dot"></span>
-                      <span className="h-2 w-2 bg-zinc-500 rounded-full typing-dot"></span>
+                      <span className="h-2 w-2 bg-zinc-500 rounded-full typing-dot" />
+                      <span className="h-2 w-2 bg-zinc-500 rounded-full typing-dot" />
+                      <span className="h-2 w-2 bg-zinc-500 rounded-full typing-dot" />
                     </div>
                   </div>
                 </div>
@@ -330,7 +440,6 @@ export default function Home() {
               <div ref={chatEndRef} />
             </div>
 
-            {/* Chat Input — disabled when finished */}
             <form onSubmit={handleSend} className="p-4 border-t border-zinc-800/60 bg-zinc-900/30 flex items-end space-x-3">
               <div className="flex-grow relative">
                 <textarea
@@ -365,7 +474,7 @@ export default function Home() {
               <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-4 font-outfit">Overall Score</h3>
               <div className="relative flex items-center justify-center">
                 <div className="w-36 h-36 rounded-full border-4 border-zinc-800 flex items-center justify-center">
-                  <div className="absolute inset-0.5 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin-slow"></div>
+                  <div className="absolute inset-0.5 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin-slow" />
                   <div className="text-center">
                     <span className="text-4xl font-extrabold text-zinc-100">{feedback.score}</span>
                     <span className="text-zinc-500 text-sm">/100</span>
@@ -401,7 +510,7 @@ export default function Home() {
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-4 font-outfit">Breeth Memory Graph</h3>
 
                 <div className="relative flex-grow min-h-[300px] bg-zinc-950/40 border border-zinc-900 rounded-xl flex items-center justify-center p-4 overflow-hidden">
-                  <div className="absolute inset-0 bg-[linear-gradient(to_right,#1f2937_1px,transparent_1px),linear-gradient(to_bottom,#1f2937_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-10"></div>
+                  <div className="absolute inset-0 bg-[linear-gradient(to_right,#1f2937_1px,transparent_1px),linear-gradient(to_bottom,#1f2937_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-10" />
 
                   <div className="relative w-full max-w-lg h-full flex flex-col items-center justify-center py-6">
                     {/* Root Node (Candidate) */}
@@ -469,7 +578,7 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Edge/Node Inspector Detail Card */}
+              {/* Inspector Card */}
               <div className="lg:col-span-1 flex flex-col">
                 <div className="glass-card rounded-2xl p-6 flex-grow flex flex-col justify-between">
                   <div>

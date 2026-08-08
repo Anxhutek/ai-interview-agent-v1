@@ -26,7 +26,9 @@ class SessionService:
     async def start_interview(self, data: InterviewStartRequest) -> InterviewStartResponse:
         first_q = self.router.get_initial_question()
         
+        user_id = data.userId or data.candidateId
         session = InterviewSession(
+            user_id=user_id,
             candidate_id=data.candidateId,
             candidate_name=data.candidateName,
             role="Backend Developer",
@@ -37,6 +39,7 @@ class SessionService:
             current_question=first_q,
             is_finished=False
         )
+
         self.db.add(session)
         await self.db.commit()
         await self.db.refresh(session)

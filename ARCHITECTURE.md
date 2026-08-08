@@ -17,69 +17,97 @@ graph TD
     subgraph Frontend
         A[React/Next.js App]
         A1[Interview UI]
-        A2[Results Dashboard]
-        A3[API Client]
+        A2[Candidate Profile & Uploads]
+        A3[Admin Dashboard]
+        A4[API Client]
     end
 
     subgraph Backend
         B[FastAPI Server]
-        B1[Session Router]
-        B2[Question Router]
-        B3[Health Router]
-        B4[AI Service - Breeth API]
-        B5[Evaluation Service]
-        B6[Session Service]
+        B1[Interview Router]
+        B2[Auth Router]
+        B3[Profile Router]
+        B4[Proctoring Router]
+        B5[Admin Router]
+        B6[Health Router]
+        B7[Breeth API Service]
+        B8[Session / Curriculum Service]
+        B9[Security / Auth Service]
     end
 
     subgraph Storage
         C[SQLite Database]
-        D[Redis Cache]
+        D[Local File Storage (/uploads)]
     end
 
-    A3 -->|HTTP/WS| B
-    B1 --> B6
-    B2 --> B4
-    B1 --> B5
-    B5 --> B4
-    B6 --> C
-    B6 --> D
+    A4 -->|HTTP REST| B
+    B1 --> B8
+    B2 --> B9
+    B3 --> D
+    B4 --> C
+    B5 --> B8
+    B7 --> C
+    B8 --> C
+    B9 --> C
 ```
 
 ---
 
 ## Data Models
 
+### User
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| email | string | Unique email address |
+| password_hash | string | Bcrypt hashed password |
+| full_name | string | Candidate/Admin full name |
+| role | string | candidate / admin |
+| target_role | string | Candidate target role |
+| profile_picture_url | string | URL path to avatar image |
+| resume_url | string | URL path to PDF/DOCX resume |
+| created_at | datetime | Creation timestamp |
+
 ### InterviewSession
 | Field | Type | Description |
 |-------|------|-------------|
 | id | UUID | Unique session identifier |
+| user_id | UUID (FK) | Foreign key to User.id |
+| candidate_id | string | External or user candidate ID |
+| candidate_name | string | Candidate display name |
 | role | string | Target job role |
-| domain | string | Interview domain |
-| difficulty | enum | easy/medium/hard |
-| status | enum | pending/active/completed |
-| created_at | datetime | Session creation time |
+| domain | string | Technical domain |
+| difficulty | string | easy / medium / hard |
+| status | string | active / completed |
+| turn_count | int | Current interview turn count |
+| current_question | text | Active question text |
+| is_finished | boolean | Session completion status |
+| proctoring_score | float | Proctoring score (0-100) |
+| integrity_status | string | clean / flagged |
+| created_at | datetime | Creation timestamp |
 
-### Question
+### ProctoringLog
 | Field | Type | Description |
 |-------|------|-------------|
-| id | UUID | Unique question identifier |
-| session_id | UUID | FK to InterviewSession |
-| text | string | Question content |
-| category | string | Question category |
-| difficulty | enum | easy/medium/hard |
-| order | int | Display order |
+| id | UUID | Unique log identifier |
+| session_id | UUID (FK) | Foreign key to InterviewSession.id |
+| event_type | string | gaze_off_screen / multiple_faces / face_missing |
+| severity | string | warning / critical |
+| timestamp | datetime | Incident timestamp |
 
-### Answer
+### InterviewTurn
 | Field | Type | Description |
 |-------|------|-------------|
-| id | UUID | Unique answer identifier |
-| question_id | UUID | FK to Question |
-| answer_text | string | User's response |
-| score | float | AI-evaluated score (0-100) |
-| feedback | string | AI-generated feedback |
-| evaluated_at | datetime | Evaluation timestamp |
+| id | UUID | Unique turn identifier |
+| session_id | UUID (FK) | Foreign key to InterviewSession.id |
+| turn_index | int | Zero-based turn index |
+| question_text | text | Question text |
+| answer_text | text | Candidate's answer |
+| breeth_episode_id | string | Episode ID from Breeth memory API |
+| created_at | datetime | Turn timestamp |
 
 ---
+
 
 ## Technology Decisions
 
