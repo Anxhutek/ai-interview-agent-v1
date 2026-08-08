@@ -3,11 +3,14 @@ import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 import io
 from main import app
-from models.database import create_all_tables
+from models.database import engine, Base, create_all_tables
 
 @pytest_asyncio.fixture(autouse=True)
 async def prepare_db():
-    await create_all_tables()
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.create_all)
+
 
 @pytest.mark.asyncio
 async def test_auth_register_and_login():

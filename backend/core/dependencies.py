@@ -54,3 +54,25 @@ async def get_current_admin(
         )
     return current_user
 
+from core.config import settings
+
+from services.ai.gemini_provider import GeminiProvider
+from services.ai.groq_provider import GroqProvider
+from services.ai.model_registry import ModelRegistry
+from services.ai.ai_orchestrator import AIOrchestrator
+from services.evaluation_service import InterviewEvaluationService
+
+# Singleton instances for model registry and orchestrator
+_gemini_provider = GeminiProvider(settings.GEMINI_API_KEY)
+_groq_provider = GroqProvider(settings.GROQ_API_KEY)
+_model_registry = ModelRegistry(_gemini_provider, _groq_provider)
+_ai_orchestrator = AIOrchestrator(_gemini_provider, _groq_provider, _model_registry)
+_evaluation_service = InterviewEvaluationService(_ai_orchestrator)
+
+def get_ai_orchestrator() -> AIOrchestrator:
+    return _ai_orchestrator
+
+def get_evaluation_service() -> InterviewEvaluationService:
+    return _evaluation_service
+
+

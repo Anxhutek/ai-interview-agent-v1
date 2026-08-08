@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { getAdminCandidates, AdminCandidateItem } from '@/lib/api';
+import { getAdminCandidates, interviewApi, AdminCandidateItem, AiHealthResponse } from '@/lib/api';
 import Link from 'next/link';
 
 export default function AdminPage() {
@@ -9,13 +9,18 @@ export default function AdminPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'clean' | 'flagged'>('all');
   const [selectedCandidate, setSelectedCandidate] = useState<AdminCandidateItem | null>(null);
+  const [aiHealth, setAiHealth] = useState<AiHealthResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function loadData() {
       setIsLoading(true);
-      const data = await getAdminCandidates();
-      setCandidates(data);
+      const [candData, healthData] = await Promise.all([
+        getAdminCandidates(),
+        interviewApi.getAiHealth(),
+      ]);
+      setCandidates(candData);
+      setAiHealth(healthData);
       setIsLoading(false);
     }
     loadData();
@@ -54,7 +59,7 @@ export default function AdminPage() {
             <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-zinc-100 to-zinc-400 bg-clip-text text-transparent font-outfit">
               Admin &amp; Proctoring Portal
             </h1>
-            <p className="text-xs text-zinc-500">Candidate Evaluation &amp; Eye-Tracking Audit Dashboard</p>
+            <p className="text-xs text-zinc-500">Evaluation Engine Health &amp; Candidate Audits</p>
           </div>
         </div>
 
@@ -68,6 +73,59 @@ export default function AdminPage() {
           <span>Back to Simulator</span>
         </Link>
       </header>
+
+      {/* AI Health & Architecture Monitor */}
+      {aiHealth && (
+        <section className="relative z-10 w-full max-w-6xl glass-card rounded-2xl p-5 mb-8 border border-zinc-800">
+          <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80 mb-4">
+            <div className="flex items-center space-x-2">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-300 font-outfit">
+                AI Provider &amp; Model Health Monitor
+              </h2>
+            </div>
+            <span className="text-[11px] text-zinc-500 font-mono">
+              System Latency: {aiHealth.systemLatencyMs}ms
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Providers */}
+            {aiHealth.providers.map((p, idx) => (
+              <div key={idx} className="p-3.5 bg-zinc-900/50 rounded-xl border border-zinc-800/80 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold text-zinc-200">{p.name}</p>
+                  <p className="text-[10px] text-zinc-500">{p.isFallback ? 'Secondary Fallback' : 'Primary Evaluation Core'}</p>
+                </div>
+                <div className="flex flex-col items-end">
+                  <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-semibold text-emerald-400 bg-emerald-950/50 border border-emerald-900/40">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                    <span>Healthy</span>
+                  </span>
+                  <span className="text-[10px] text-zinc-500 font-mono mt-1">{p.latencyMs}ms</span>
+                </div>
+              </div>
+            ))}
+
+            {/* Models */}
+            {aiHealth.models.slice(0, 2).map((m, idx) => (
+              <div key={idx} className="p-3.5 bg-zinc-900/50 rounded-xl border border-zinc-800/80 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold text-indigo-300 font-mono">{m.modelId}</p>
+                  <p className="text-[10px] text-zinc-500">{m.provider}</p>
+                </div>
+                <div className="flex flex-col items-end">
+                  <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-semibold text-emerald-400 bg-emerald-950/50 border border-emerald-900/40">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                    <span>Active</span>
+                  </span>
+                  <span className="text-[10px] text-zinc-500 font-mono mt-1">{m.latencyMs}ms</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Metrics Cards Grid */}
       <section className="relative z-10 w-full max-w-6xl grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

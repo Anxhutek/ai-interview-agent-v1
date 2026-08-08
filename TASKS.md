@@ -23,5 +23,7 @@
 | 6 | Create responsive web conversational UI | Frontend Agent | ⏳ Planned | Chatbox interface |
 | 7 | Set up automated deployment to Cloud Run | DevOps Agent | ⏳ Planned | YAML deployment setup |
 | 8 | User Auth, Profile, Proctoring Audit, & Admin APIs | Backend Agent | ✅ Done | Auth, Avatar/Resume upload, Proctoring events, Admin dashboard |
+| 9 | Backend AI Evaluation Architecture Upgrade | Backend Agent | 🔄 In Progress | Provider Abstraction, Model Discovery, Groq Fallback, Eval Service, Persistence |
+
 
 

@@ -23,27 +23,26 @@ export const ProctoringCam: React.FC<ProctoringCamProps> = ({
   const [activeWarning, setActiveWarning] = useState<string | null>(null);
   const [isMinimized, setIsMinimized] = useState(false);
 
-  // Request Webcam stream
+  const initCamera = async () => {
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { width: 320, height: 240, frameRate: 15 },
+        audio: false,
+      });
+      setStream(mediaStream);
+      setHasPermission(true);
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+      }
+    } catch (err) {
+      console.warn('Webcam permission denied or unavailable:', err);
+      setHasPermission(false);
+    }
+  };
+
+  // Request Webcam stream on mount/activation
   useEffect(() => {
     if (!isActive) return;
-
-    async function initCamera() {
-      try {
-        const mediaStream = await navigator.mediaDevices.getUserMedia({
-          video: { width: 320, height: 240, frameRate: 15 },
-          audio: false,
-        });
-        setStream(mediaStream);
-        setHasPermission(true);
-        if (videoRef.current) {
-          videoRef.current.srcObject = mediaStream;
-        }
-      } catch (err) {
-        console.warn('Webcam permission denied or unavailable:', err);
-        setHasPermission(false);
-      }
-    }
-
     initCamera();
 
     return () => {
@@ -80,23 +79,22 @@ export const ProctoringCam: React.FC<ProctoringCamProps> = ({
       }
       const avgBrightness = sumBrightness / (data.length / 16);
 
-      // Detect drastic brightness drops (e.g. face covered or user looking away into dark background)
       const brightnessDiff = Math.abs(avgBrightness - lastBrightness);
       lastBrightness = avgBrightness;
 
-      // Simulated gaze deviation check (every ~10 seconds randomly or on motion spike)
-      const randomGazeCheck = Math.random() < 0.08;
+      // Simulated gaze deviation check (every ~12 seconds on motion spike)
+      const randomGazeCheck = Math.random() < 0.07;
 
-      if (brightnessDiff > 35 || randomGazeCheck) {
+      if (brightnessDiff > 38 || randomGazeCheck) {
         anomalyTicks++;
         if (anomalyTicks >= 2) {
-          triggerWarning('gaze_off_screen', '⚠️ Eye Movement Warning: Off-screen gaze detected!');
+          triggerWarning('gaze_off_screen', '⚠️ Eye Movement Warning: Off-screen gaze detected');
           anomalyTicks = 0;
         }
       } else {
         anomalyTicks = Math.max(0, anomalyTicks - 1);
       }
-    }, 2500);
+    }, 2800);
 
     return () => clearInterval(intervalId);
   }, [isActive, hasPermission, stream, sessionId]);
@@ -131,7 +129,11 @@ export const ProctoringCam: React.FC<ProctoringCamProps> = ({
     <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end">
       {/* Active Warning Overlay Banner */}
       {activeWarning && (
-        <div className="mb-3 p-3.5 rounded-xl bg-red-950/90 border border-red-500 text-red-200 text-xs font-semibold flex items-center space-x-2.5 shadow-2xl animate-bounce backdrop-blur-md max-w-xs">
+        <div 
+          role="alert"
+          aria-live="assertive"
+          className="mb-3 p-3.5 rounded-xl bg-red-950/95 border border-red-500 text-red-200 text-xs font-semibold flex items-center space-x-2.5 shadow-2xl animate-bounce backdrop-blur-md max-w-xs"
+        >
           <div className="h-3 w-3 rounded-full bg-red-500 animate-ping shrink-0" />
           <span>{activeWarning}</span>
         </div>
@@ -141,14 +143,20 @@ export const ProctoringCam: React.FC<ProctoringCamProps> = ({
       <div className="glass-card rounded-2xl p-2.5 border border-zinc-800 shadow-2xl overflow-hidden transition-all duration-300">
         <div className="flex items-center justify-between px-2 py-1 mb-1.5 border-b border-zinc-800/60">
           <div className="flex items-center space-x-2">
-            <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-[11px] font-semibold text-zinc-300 font-outfit">
-              Proctoring Cam
-            </span>
+            {hasPermission ? (
+              <span className="flex items-center space-x-1.5 text-xs text-emerald-400 font-medium">
+                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Camera Active</span>
+              </span>
+            ) : (
+              <span className="flex items-center space-x-1.5 text-xs text-zinc-400 font-medium">
+                <span className="h-2 w-2 rounded-full bg-amber-400" />
+                <span>Camera Inactive</span>
+              </span>
+            )}
           </div>
 
           <div className="flex items-center space-x-2">
-            {/* Warning Counter Badge */}
             {warningCount > 0 && (
               <span className="px-2 py-0.5 text-[10px] font-bold text-red-400 bg-red-950/60 border border-red-800/50 rounded-full font-mono">
                 {warningCount} Warnings
@@ -156,6 +164,7 @@ export const ProctoringCam: React.FC<ProctoringCamProps> = ({
             )}
             <button
               onClick={() => setIsMinimized(!isMinimized)}
+              aria-label={isMinimized ? 'Expand camera' : 'Minimize camera'}
               className="text-zinc-500 hover:text-zinc-300 text-xs px-1"
             >
               {isMinimized ? '▲' : '▼'}
@@ -166,11 +175,17 @@ export const ProctoringCam: React.FC<ProctoringCamProps> = ({
         {!isMinimized && (
           <div className="relative w-44 h-32 rounded-xl bg-zinc-950 overflow-hidden border border-zinc-900 flex items-center justify-center">
             {hasPermission === false && (
-              <div className="p-3 text-center text-xs text-red-400">
-                <svg className="w-6 h-6 mx-auto mb-1 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="p-3 text-center text-xs text-zinc-400 space-y-2">
+                <svg className="w-5 h-5 mx-auto text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
-                <span>Camera access disabled</span>
+                <p className="text-[11px]">Camera access unavailable</p>
+                <button
+                  onClick={initCamera}
+                  className="px-2.5 py-1 text-[10px] font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-md transition-all"
+                >
+                  Enable Camera
+                </button>
               </div>
             )}
 

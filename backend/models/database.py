@@ -43,12 +43,15 @@ class InterviewSession(Base):
     is_finished = Column(Boolean, default=False)
     proctoring_score = Column(Float, default=100.0)
     integrity_status = Column(String, default='clean') # 'clean', 'flagged'
+    adaptive_state = Column(Text, nullable=True) # JSON stored state
+    final_evaluation = Column(Text, nullable=True) # JSON stored final summary report
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     user = relationship('User', back_populates='sessions')
     turns = relationship('InterviewTurn', back_populates='session', cascade='all, delete-orphan')
     proctoring_logs = relationship('ProctoringLog', back_populates='session', cascade='all, delete-orphan')
+    evaluations = relationship('AnswerEvaluation', back_populates='session', cascade='all, delete-orphan')
 
 class InterviewTurn(Base):
     __tablename__ = 'interview_turns'
@@ -62,6 +65,7 @@ class InterviewTurn(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     
     session = relationship('InterviewSession', back_populates='turns')
+    evaluation = relationship('AnswerEvaluation', back_populates='turn', uselist=False, cascade='all, delete-orphan')
 
 class ProctoringLog(Base):
     __tablename__ = 'proctoring_logs'
@@ -73,6 +77,35 @@ class ProctoringLog(Base):
     timestamp = Column(DateTime, default=datetime.utcnow)
     
     session = relationship('InterviewSession', back_populates='proctoring_logs')
+
+class AnswerEvaluation(Base):
+    __tablename__ = 'answer_evaluations'
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    session_id = Column(String, ForeignKey('interview_sessions.id'), nullable=False)
+    turn_id = Column(String, ForeignKey('interview_turns.id'), nullable=True)
+    question_id = Column(String, nullable=True)
+    answer_id = Column(String, nullable=True)
+    provider = Column(String, nullable=False, default='gemini') # 'gemini', 'groq'
+    model = Column(String, nullable=False)
+    scores = Column(Text, nullable=True) # JSON string of 9 dimensions
+    overall_score = Column(Float, default=0.0)
+    verdict = Column(String, nullable=True, default='satisfactory') # 'strong', 'satisfactory', 'needs_improvement', 'weak'
+    strengths = Column(Text, nullable=True) # JSON array
+    weaknesses = Column(Text, nullable=True) # JSON array
+    missing_points = Column(Text, nullable=True) # JSON array
+    technical_feedback = Column(Text, nullable=True)
+    communication_feedback = Column(Text, nullable=True)
+    improvement_suggestions = Column(Text, nullable=True) # JSON array
+    evaluation_status = Column(String, nullable=False, default='pending') # 'pending', 'processing', 'completed', 'failed'
+    evaluation_latency = Column(Float, default=0.0)
+    evaluation_attempts = Column(Integer, default=1)
+    evaluation_version = Column(String, default='1.0')
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    session = relationship('InterviewSession', back_populates='evaluations')
+    turn = relationship('InterviewTurn', back_populates='evaluation')
+
 
 async def create_all_tables():
     async with engine.begin() as conn:

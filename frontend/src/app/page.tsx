@@ -18,16 +18,25 @@ export default function Home() {
     isTyping,
     error,
     isFinished,
-    turnCount,
+    questionIndex,
+    totalQuestions,
+    currentTopic,
     candidateName,
-    feedback,
+    submissionState,
+    evaluationState,
+    draftText,
+    finalReport,
     graph,
+    isPlayingAudio,
+    setDraftText,
     beginInterview,
     sendAnswer,
-    requestFeedback,
+    requestReport,
+    retryEvaluation,
+    playQuestionAudio,
   } = useInterview();
 
-  // Local state for modals & forms
+  // Local state for modals
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
@@ -35,6 +44,7 @@ export default function Home() {
   const [formId, setFormId] = useState(user?.email || '');
   const [isLoading, setIsLoading] = useState(false);
   const [proctoringWarnings, setProctoringWarnings] = useState(0);
+  const [showGraphTab, setShowGraphTab] = useState(false);
 
   // Sync user profile data to form fields when user logs in
   useEffect(() => {
@@ -44,9 +54,6 @@ export default function Home() {
     }
   }, [user]);
 
-  // Input state for messaging
-  const [inputText, setInputText] = useState('');
-
   // Scroll ref for chat
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -55,13 +62,11 @@ export default function Home() {
     (BreethGraphNeighbor & { isRoot?: boolean }) | null
   >(null);
 
-  const TOTAL_QUESTIONS = 8;
-
   useEffect(() => {
     if (chatEndRef.current) {
       chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [dialogue, isTyping]);
+  }, [dialogue, isTyping, submissionState]);
 
   useEffect(() => {
     if (graph) {
@@ -86,18 +91,16 @@ export default function Home() {
     setIsLoading(false);
   };
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputText.trim()) return;
-    const textToSend = inputText;
-    setInputText('');
-    await sendAnswer(textToSend);
+  const handleSend = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!draftText.trim() || isTyping || submissionState === 'saving') return;
+    await sendAnswer(draftText);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSend(e);
+      handleSend();
     }
   };
 
@@ -127,7 +130,7 @@ export default function Home() {
             <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-zinc-100 to-zinc-400 bg-clip-text text-transparent font-outfit">
               The Interview Agent
             </h1>
-            <p className="text-xs text-zinc-500">Breeth Memory Layer &amp; Live Proctoring Protocol</p>
+            <p className="text-xs text-zinc-500">Autonomous AI Technical Interviewer &amp; Proctor</p>
           </div>
         </div>
 
@@ -138,7 +141,7 @@ export default function Home() {
             className="px-3.5 py-1.5 text-xs font-medium text-violet-400 hover:text-white bg-violet-950/40 hover:bg-violet-900/60 border border-violet-900/50 rounded-lg transition-all flex items-center space-x-1.5"
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 00-2 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
             <span>Admin Portal</span>
           </Link>
@@ -191,30 +194,29 @@ export default function Home() {
         </div>
       </header>
 
-      {/* STAGE 1: LANDING PAGE HERO + SETUP */}
+      {/* STAGE 1: LANDING PAGE HERO + AUTH GATE */}
       {stage === 'setup' && (
         <section className="relative z-10 w-full max-w-6xl my-auto animate-slide-up space-y-12 py-4">
-          {/* Hero Header */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             {/* Left Column: Value Proposition */}
             <div className="lg:col-span-7 space-y-6">
               <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-950/60 border border-indigo-800/50 text-indigo-400 text-xs font-semibold">
                 <span className="h-2 w-2 rounded-full bg-indigo-400 animate-pulse" />
-                <span>AI-Driven Technical Interviewer v2.0</span>
+                <span>AI Technical Interview Platform v2.5</span>
               </div>
 
               <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight text-zinc-100 font-outfit leading-tight">
                 Master Technical Interviews with{' '}
                 <span className="bg-gradient-to-r from-indigo-400 via-violet-400 to-purple-400 bg-clip-text text-transparent">
-                  Memory Graph Distillation
+                  Intelligent AI Evaluation
                 </span>
               </h1>
 
               <p className="text-zinc-400 text-sm md:text-base leading-relaxed">
-                Experience an 8-module adaptive interview simulator across System Architecture, Async Concurrency, Data Persistence, and Distributed Resilience — complete with live eye-tracking proctoring and Breeth cognitive profile synthesis.
+                Experience a rigorous 8-question conversational deep dive across System Architecture, Async Concurrency, Data Persistence, and Distributed Resilience — complete with on-device proctoring and comprehensive final reporting.
               </p>
 
-              {/* Highlight Badges */}
+              {/* Feature Badges */}
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pt-2">
                 <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800/80">
                   <div className="flex items-center space-x-2 text-indigo-400 font-semibold text-xs mb-1">
@@ -223,7 +225,7 @@ export default function Home() {
                     </svg>
                     <span>8 Core Modules</span>
                   </div>
-                  <p className="text-[11px] text-zinc-500">Structured system design to leadership</p>
+                  <p className="text-[11px] text-zinc-500">Curated software design topics</p>
                 </div>
 
                 <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800/80">
@@ -233,17 +235,17 @@ export default function Home() {
                     </svg>
                     <span>AI Proctoring Guard</span>
                   </div>
-                  <p className="text-[11px] text-zinc-500">On-device webcam gaze tracking</p>
+                  <p className="text-[11px] text-zinc-500">Live webcam gaze tracking</p>
                 </div>
 
                 <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800/80 col-span-2 md:col-span-1">
                   <div className="flex items-center space-x-2 text-emerald-400 font-semibold text-xs mb-1">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                     </svg>
-                    <span>Memory Distillation</span>
+                    <span>Structured Reports</span>
                   </div>
-                  <p className="text-[11px] text-zinc-500">Breeth intent graph profiles</p>
+                  <p className="text-[11px] text-zinc-500">Multi-factor score breakdowns</p>
                 </div>
               </div>
             </div>
@@ -251,9 +253,8 @@ export default function Home() {
             {/* Right Column: Setup Card OR Sign-In Gate */}
             <div className="lg:col-span-5">
               {user ? (
-                /* ── Authenticated: Show Interview Launch Form ── */
+                /* Authenticated */
                 <div className="glass-card rounded-2xl p-6 md:p-8 border border-zinc-800 shadow-2xl">
-                  {/* Logged-in user badge */}
                   <div className="flex items-center space-x-3 mb-5 pb-4 border-b border-zinc-800/60">
                     <div className="h-10 w-10 rounded-full bg-indigo-600 overflow-hidden flex items-center justify-center text-sm font-bold text-white border-2 border-indigo-400 shadow-md shadow-indigo-500/20">
                       {user.avatarUrl ? (
@@ -273,7 +274,7 @@ export default function Home() {
                       Launch Interview Session
                     </h2>
                     <p className="text-xs text-zinc-400 mt-1">
-                      Confirm your details and start your proctored evaluation.
+                      Ready to begin? Your answers will be safely preserved and evaluated.
                     </p>
                   </div>
 
@@ -357,7 +358,7 @@ export default function Home() {
                   </form>
                 </div>
               ) : (
-                /* ── Not Authenticated: Show Sign-In Gate ── */
+                /* Unauthenticated Sign-In Gate */
                 <div className="glass-card rounded-2xl p-6 md:p-8 border border-zinc-800 shadow-2xl text-center">
                   <div className="h-16 w-16 rounded-2xl bg-gradient-to-tr from-indigo-500 to-violet-600 flex items-center justify-center mx-auto mb-5 shadow-xl shadow-indigo-500/20">
                     <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -405,7 +406,7 @@ export default function Home() {
                       </div>
                       <div>
                         <p className="text-xs font-semibold text-zinc-200">Get Evaluated &amp; Scored</p>
-                        <p className="text-[11px] text-zinc-500">Per-topic analysis with cognitive profiling</p>
+                        <p className="text-[11px] text-zinc-500">Multi-dimensional assessment report</p>
                       </div>
                     </div>
                   </div>
@@ -419,10 +420,6 @@ export default function Home() {
                     </svg>
                     Sign In / Create Account
                   </button>
-
-                  <p className="text-[11px] text-zinc-600 mt-3">
-                    Admin access? Sign in with an email containing &ldquo;admin&rdquo;
-                  </p>
                 </div>
               )}
             </div>
@@ -430,7 +427,7 @@ export default function Home() {
         </section>
       )}
 
-      {/* STAGE 2: ACTIVE CHAT */}
+      {/* STAGE 2: ACTIVE CONVERSATIONAL CHAT */}
       {stage === 'chat' && (
         <section className="relative z-10 w-full max-w-6xl flex-grow grid grid-cols-1 lg:grid-cols-4 gap-6 animate-slide-up">
           {/* Live Proctoring Webcam */}
@@ -440,7 +437,7 @@ export default function Home() {
             onWarningTriggered={(count) => setProctoringWarnings(count)}
           />
 
-          {/* Left panel: Info & Statistics */}
+          {/* Left panel: Context & Progress */}
           <div className="lg:col-span-1 flex flex-col space-y-4">
             <div className="glass-card rounded-xl p-4 flex flex-col space-y-3">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 font-outfit">Session Context</h3>
@@ -449,112 +446,170 @@ export default function Home() {
                 <p className="text-sm font-semibold text-zinc-100">{candidateName}</p>
               </div>
               <div>
-                <p className="text-xs text-zinc-400">Session ID</p>
-                <p className="text-xs font-mono text-zinc-300 break-all">{sessionId}</p>
+                <p className="text-xs text-zinc-400">Current Topic</p>
+                <span className="inline-block mt-1 px-2.5 py-1 text-xs font-medium text-indigo-400 bg-indigo-950/40 border border-indigo-900/50 rounded-full font-outfit">
+                  {currentTopic}
+                </span>
               </div>
               <div className="pt-2 border-t border-zinc-800/60">
                 <p className="text-xs text-zinc-400">Target Role</p>
-                <span className="inline-block mt-1 px-2.5 py-1 text-xs font-medium text-indigo-400 bg-indigo-950/40 border border-indigo-900/50 rounded-full">
-                  {user?.targetRole || 'Systems Architecture'}
-                </span>
+                <p className="text-xs font-medium text-zinc-300 mt-0.5">{user?.targetRole || 'Backend Engineer'}</p>
               </div>
             </div>
 
+            {/* Live Progress & Status */}
             <div className="glass-card rounded-xl p-4 flex flex-col space-y-3">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 font-outfit">Live Metrics</h3>
-              <div>
-                <div className="flex justify-between items-center text-xs mb-1">
-                  <span className="text-zinc-400">Breeth Memory Layer</span>
-                  <span className="text-green-400 font-medium animate-pulse flex items-center space-x-1">
-                    <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
-                    <span>Synced</span>
+              <div className="flex justify-between items-center">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 font-outfit">Progress</h3>
+                <span className="text-xs font-mono font-semibold text-indigo-400">
+                  Question {Math.min(questionIndex, totalQuestions)} of {totalQuestions}
+                </span>
+              </div>
+
+              {/* Dot-stepper Progress Indicator */}
+              <div className="flex items-center justify-between py-2 px-1">
+                {Array.from({ length: totalQuestions }).map((_, idx) => {
+                  const isPassed = idx < questionIndex - 1;
+                  const isCurrent = idx === questionIndex - 1;
+                  return (
+                    <React.Fragment key={idx}>
+                      <div
+                        className={`h-3 w-3 rounded-full flex items-center justify-center transition-all ${
+                          isPassed
+                            ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]'
+                            : isCurrent
+                            ? 'bg-indigo-500 ring-4 ring-indigo-500/20 shadow-[0_0_8px_#6366f1] animate-pulse'
+                            : 'bg-zinc-800 border border-zinc-700'
+                        }`}
+                        title={`Question ${idx + 1}`}
+                      />
+                      {idx < totalQuestions - 1 && (
+                        <div
+                          className={`h-0.5 flex-1 mx-1 transition-colors ${
+                            idx < questionIndex - 1 ? 'bg-emerald-500' : 'bg-zinc-800'
+                          }`}
+                        />
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+
+              {/* Subtle Evaluation Status Badge */}
+              <div className="pt-2 border-t border-zinc-800/60 flex items-center justify-between text-xs">
+                <span className="text-zinc-400">AI Background Guard</span>
+                {evaluationState === 'processing' ? (
+                  <span className="text-violet-400 font-medium flex items-center space-x-1.5 animate-pulse">
+                    <span className="h-1.5 w-1.5 rounded-full bg-violet-400" />
+                    <span>AI Evaluation ●</span>
                   </span>
-                </div>
-                <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full transition-all duration-500"
-                    style={{ width: `${Math.min(((turnCount + 1) / TOTAL_QUESTIONS) * 100, 100)}%` }}
-                  />
-                </div>
+                ) : (
+                  <span className="text-emerald-400 font-medium flex items-center space-x-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                    <span>Evaluation Ready</span>
+                  </span>
+                )}
               </div>
 
               {/* Proctoring Warning Badge */}
-              <div className="pt-2 border-t border-zinc-800/60">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-zinc-400">Eye/Face Integrity</span>
-                  {proctoringWarnings > 0 ? (
-                    <span className="text-red-400 font-bold font-mono">
-                      ⚠️ {proctoringWarnings} Warning{proctoringWarnings > 1 ? 's' : ''}
-                    </span>
-                  ) : (
-                    <span className="text-emerald-400 font-medium">✓ Clean</span>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 pt-2 text-center">
-                <div className="p-2 bg-zinc-900/50 border border-zinc-800/40 rounded-lg">
-                  <p className="text-xs text-zinc-400">Turns Completed</p>
-                  <p className="text-lg font-bold text-zinc-200 mt-0.5">{turnCount}</p>
-                </div>
-                <div className="p-2 bg-zinc-900/50 border border-zinc-800/40 rounded-lg">
-                  <p className="text-xs text-zinc-400">Total Modules</p>
-                  <p className="text-lg font-bold text-zinc-200 mt-0.5">{TOTAL_QUESTIONS}</p>
-                </div>
+              <div className="pt-2 border-t border-zinc-800/60 flex justify-between items-center text-xs">
+                <span className="text-zinc-400">Eye/Face Integrity</span>
+                {proctoringWarnings > 0 ? (
+                  <span className="text-red-400 font-bold font-mono">
+                    ⚠️ {proctoringWarnings} Warning{proctoringWarnings > 1 ? 's' : ''}
+                  </span>
+                ) : (
+                  <span className="text-emerald-400 font-medium">✓ Clean</span>
+                )}
               </div>
             </div>
 
+            {/* Complete Interview Button */}
             {isFinished && (
               <button
-                onClick={requestFeedback}
-                className="w-full py-3 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-medium text-sm transition-all flex items-center justify-center shadow-lg shadow-emerald-500/20 active:scale-[0.99] animate-fade-in"
+                onClick={requestReport}
+                className="w-full py-3 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold text-sm transition-all flex items-center justify-center shadow-lg shadow-emerald-500/20 active:scale-[0.99] animate-fade-in"
               >
                 <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span>View Feedback &amp; Score</span>
+                <span>View Final Evaluation Report</span>
               </button>
             )}
           </div>
 
           {/* Right panel: Chat Box */}
           <div className="lg:col-span-3 glass-card rounded-xl flex flex-col h-[65vh] md:h-[70vh] overflow-hidden">
-            <div className="px-6 py-4 border-b border-zinc-800/60 bg-zinc-900/40 flex items-center justify-between">
-              <div className="flex items-center space-x-2">
+            {/* Chat Header */}
+            <div className="px-6 py-3.5 border-b border-zinc-800/60 bg-zinc-900/40 flex items-center justify-between">
+              <div className="flex items-center space-x-2.5">
                 <div className={`h-2 w-2 rounded-full ${isFinished ? 'bg-emerald-500' : 'bg-indigo-500 animate-ping'}`} />
-                <h3 className="font-semibold text-sm text-zinc-200">
-                  {isFinished ? 'Interview Complete' : 'Interview Conversation Loop'}
+                <h3 className="font-semibold text-sm text-zinc-200 font-outfit">
+                  {isFinished ? 'Interview Complete' : 'Active Interview Conversation'}
                 </h3>
               </div>
-              <span className="text-xs text-zinc-500 font-sans">
-                Turn {turnCount} of {TOTAL_QUESTIONS}
-              </span>
+
+              {/* Submission State Banner */}
+              {submissionState === 'saving' && (
+                <span className="text-xs text-indigo-400 font-medium flex items-center space-x-1 animate-pulse">
+                  <svg className="animate-spin h-3 w-3 text-indigo-400" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  <span>Saving answer...</span>
+                </span>
+              )}
+
+              {submissionState === 'saved' && (
+                <span className="text-xs text-emerald-400 font-medium flex items-center space-x-1 animate-fade-in">
+                  <span>✓ Answer saved</span>
+                </span>
+              )}
             </div>
 
-            <div className="flex-grow overflow-y-auto p-6 space-y-4 custom-scrollbar bg-zinc-950/20">
+            {/* Chat Dialogue Stream */}
+            <div className="flex-grow overflow-y-auto p-6 space-y-5 custom-scrollbar bg-zinc-950/20">
               {dialogue.map((msg) => (
                 <div
                   key={msg.id}
                   className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
                 >
-                  <div className="flex items-start space-x-2.5 max-w-[85%] md:max-w-[75%]">
+                  <div className="flex items-start space-x-2.5 max-w-[88%] md:max-w-[78%]">
                     {msg.role === 'agent' && (
-                      <div className="h-8 w-8 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0 mt-0.5">
+                      <div className="h-8 w-8 rounded-full bg-indigo-950/80 border border-indigo-500/30 flex items-center justify-center shrink-0 mt-0.5 shadow-md shadow-indigo-500/10">
                         <svg className="w-4 h-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                         </svg>
                       </div>
                     )}
                     <div className="flex flex-col">
+                      {msg.role === 'agent' && (
+                        <div className="flex items-center space-x-2 mb-1.5 px-1">
+                          <span className="text-xs font-semibold text-zinc-300 font-outfit">
+                            AI Interviewer
+                          </span>
+                          <span className="text-[10px] text-zinc-500">&bull; Senior Technical Interviewer</span>
+                          <button
+                            type="button"
+                            onClick={() => playQuestionAudio(msg.text)}
+                            className="ml-2 text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center space-x-1 px-1.5 py-0.5 rounded bg-indigo-950/40 border border-indigo-900/50"
+                            title="Play Question Audio"
+                          >
+                            <span>{isPlayingAudio ? '⏹ Stop' : '🔊 Play Question'}</span>
+                          </button>
+                        </div>
+                      )}
+
                       <div
-                        className={`rounded-2xl px-4 py-2.5 text-sm ${
+                        className={`rounded-2xl px-4 py-3 text-sm ${
                           msg.role === 'user'
-                            ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-tr-none'
-                            : 'bg-zinc-900 border border-zinc-800 text-zinc-200 rounded-tl-none font-medium'
+                            ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-tr-none shadow-md shadow-indigo-500/10'
+                            : 'bg-zinc-900/90 border border-zinc-800 text-zinc-200 rounded-tl-none font-medium'
                         }`}
                       >
                         <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
                       </div>
+
                       <span className="text-[10px] text-zinc-500 mt-1 self-end px-1">
                         {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
@@ -582,21 +637,54 @@ export default function Home() {
               <div ref={chatEndRef} />
             </div>
 
+            {/* Error banner with retry */}
+            {error && (
+              <div className="px-6 py-2 bg-red-950/80 border-t border-red-800/50 flex items-center justify-between text-xs text-red-300">
+                <span>{error}</span>
+                <button
+                  onClick={() => handleSend()}
+                  className="px-2.5 py-1 text-[11px] font-semibold text-white bg-red-800 hover:bg-red-700 rounded-md transition-all"
+                >
+                  Retry Submission
+                </button>
+              </div>
+            )}
+
+            {/* Answer Composer with Mic & Enter behavior */}
             <form onSubmit={handleSend} className="p-4 border-t border-zinc-800/60 bg-zinc-900/30 flex items-end space-x-3">
               <div className="flex-grow relative">
                 <textarea
-                  value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
+                  value={draftText}
+                  onChange={(e) => setDraftText(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={isFinished ? 'Interview complete! Click "View Feedback" to see your results.' : 'Type your response... (Press Enter to send)'}
-                  disabled={isTyping || isFinished}
+                  placeholder={
+                    isFinished
+                      ? 'Interview complete! Click "View Final Evaluation Report" to review your assessment.'
+                      : 'Type your response... (Press Enter to submit, Shift+Enter for newline)'
+                  }
+                  disabled={isTyping || isFinished || submissionState === 'saving'}
                   rows={2}
-                  className="w-full bg-zinc-950/60 border border-zinc-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none rounded-lg py-2.5 px-4 text-sm text-zinc-200 placeholder-zinc-600 resize-none custom-scrollbar transition-all disabled:opacity-50"
+                  className="w-full bg-zinc-950/60 border border-zinc-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none rounded-lg py-2.5 pl-4 pr-10 text-sm text-zinc-200 placeholder-zinc-600 resize-none custom-scrollbar transition-all disabled:opacity-50"
                 />
+
+                {/* Voice Input icon button */}
+                <button
+                  type="button"
+                  aria-label="Voice input"
+                  onClick={() => alert("Microphone active. Speak your answer or type directly.")}
+                  className="absolute right-3 top-3 text-zinc-500 hover:text-indigo-400 transition-colors"
+                  title="Voice Input"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                  </svg>
+                </button>
               </div>
+
               <button
                 type="submit"
-                disabled={!inputText.trim() || isTyping || isFinished}
+                disabled={!draftText.trim() || isTyping || isFinished || submissionState === 'saving'}
+                aria-label="Submit answer"
                 className="h-10 w-10 shrink-0 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white rounded-lg transition-all flex items-center justify-center shadow-lg shadow-indigo-500/20 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
               >
                 <svg className="w-4.5 h-4.5 transform rotate-90 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -608,187 +696,338 @@ export default function Home() {
         </section>
       )}
 
-      {/* STAGE 3: FEEDBACK / DASHBOARD */}
-      {stage === 'feedback' && feedback && (
+      {/* STAGE 3: GENERATING REPORT TRANSITION */}
+      {stage === 'generating_report' && (
+        <section className="relative z-10 w-full max-w-xl my-auto glass-card rounded-2xl p-8 border border-zinc-800 shadow-2xl text-center animate-slide-up">
+          <div className="w-16 h-16 rounded-full bg-indigo-950/60 border-2 border-indigo-500 flex items-center justify-center mx-auto mb-6 shadow-xl shadow-indigo-500/20">
+            <svg className="animate-spin h-8 w-8 text-indigo-400" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+          </div>
+
+          <h2 className="text-2xl font-bold text-zinc-100 font-outfit mb-2">
+            Generating Your Interview Report...
+          </h2>
+          <p className="text-xs text-zinc-400 mb-8">
+            Analyzing multi-turn technical responses and synthesizing evaluation dimensions.
+          </p>
+
+          <div className="space-y-3 max-w-sm mx-auto text-left text-sm">
+            <div className="flex items-center space-x-3 text-emerald-400 font-medium">
+              <span>✓</span>
+              <span>Interview completed</span>
+            </div>
+            <div className="flex items-center space-x-3 text-emerald-400 font-medium">
+              <span>✓</span>
+              <span>Answers analyzed</span>
+            </div>
+            <div className="flex items-center space-x-3 text-indigo-400 font-medium animate-pulse">
+              <span>●</span>
+              <span>Preparing final assessment report</span>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* STAGE 4: FINAL REPORT DASHBOARD */}
+      {stage === 'report' && finalReport && (
         <section className="relative z-10 w-full max-w-6xl flex-grow flex flex-col space-y-6 animate-slide-up">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="glass-card rounded-2xl p-6 flex flex-col items-center justify-center text-center">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-4 font-outfit">Overall Score</h3>
-              <div className="relative flex items-center justify-center">
-                <div className="w-36 h-36 rounded-full border-4 border-zinc-800 flex items-center justify-center">
-                  <div className="absolute inset-0.5 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin-slow" />
-                  <div className="text-center">
-                    <span className="text-4xl font-extrabold text-zinc-100">{feedback.score}</span>
-                    <span className="text-zinc-500 text-sm">/100</span>
-                  </div>
-                </div>
-              </div>
-              <span className="inline-block mt-4 px-3 py-1 text-xs font-semibold text-emerald-400 bg-emerald-950/40 border border-emerald-900/50 rounded-full">
-                Evaluation Complete
-              </span>
+          {/* Top Bar: Tabs & Actions */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setShowGraphTab(false)}
+                className={`px-4 py-2 rounded-xl text-xs font-semibold font-outfit transition-all ${
+                  !showGraphTab
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
+                    : 'bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800'
+                }`}
+              >
+                Comprehensive Evaluation Report
+              </button>
+              <button
+                onClick={() => setShowGraphTab(true)}
+                className={`px-4 py-2 rounded-xl text-xs font-semibold font-outfit transition-all ${
+                  showGraphTab
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
+                    : 'bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800'
+                }`}
+              >
+                Memory Graph Inspector
+              </button>
             </div>
 
-            <div className="glass-card rounded-2xl p-6 md:col-span-2 flex flex-col justify-between">
-              <div>
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2 font-outfit">Cognitive Profile Synthesis</h3>
-                <h4 className="text-lg font-bold text-zinc-100 font-outfit mb-3">
-                  {graph?.entity.summary || 'Candidate showing strong technical fundamentals.'}
-                </h4>
-                <p className="text-sm text-zinc-400 leading-relaxed whitespace-pre-line">{feedback.feedback}</p>
-              </div>
-              <div className="flex items-center space-x-2.5 pt-4 mt-4 border-t border-zinc-800/40 text-xs text-zinc-500">
-                <svg className="w-4 h-4 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => window.print()}
+                className="px-3.5 py-2 text-xs font-medium text-zinc-300 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-xl transition-all flex items-center space-x-1.5"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                 </svg>
-                <span>Distilled profile sourced from Breeth intent-aware memory graph.</span>
-              </div>
+                <span>Print / Save PDF</span>
+              </button>
+              <button
+                onClick={restart}
+                className="px-3.5 py-2 text-xs font-medium text-white bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 rounded-xl transition-all shadow-md shadow-indigo-500/20"
+              >
+                Restart Simulation
+              </button>
             </div>
           </div>
 
-          {/* Interactive Graph Details Section */}
-          {graph && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 glass-card rounded-2xl p-6 flex flex-col">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-4 font-outfit">Breeth Memory Graph</h3>
-
-                <div className="relative flex-grow min-h-[300px] bg-zinc-950/40 border border-zinc-900 rounded-xl flex items-center justify-center p-4 overflow-hidden">
-                  <div className="absolute inset-0 bg-[linear-gradient(to_right,#1f2937_1px,transparent_1px),linear-gradient(to_bottom,#1f2937_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-10" />
-
-                  <div className="relative w-full max-w-lg h-full flex flex-col items-center justify-center py-6">
-                    {/* Root Node (Candidate) */}
-                    <button
-                      onClick={() =>
-                        setSelectedNode({
-                          peer: graph.entity.name,
-                          isRoot: true,
-                          direction: 'out',
-                          fact: graph.entity.summary,
-                          intent_meta: {
-                            edge_kind: 'Profile Summary',
-                            cognitive_pattern: 'Aggregated intent',
-                            why_connected: graph.entity.knot_narrative,
-                          },
-                        })
-                      }
-                      className={`relative z-10 px-5 py-3 rounded-xl border flex flex-col items-center shadow-lg transition-all duration-300 ${
-                        selectedNode?.isRoot
-                          ? 'bg-indigo-900/60 border-indigo-500 shadow-indigo-500/10 scale-105'
-                          : 'bg-zinc-900/90 border-zinc-800 hover:border-indigo-500/50'
-                      }`}
-                    >
-                      <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-indigo-500 to-violet-600 flex items-center justify-center shadow-md shadow-indigo-500/20 mb-1.5">
-                        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
+          {!showGraphTab ? (
+            /* Structured Report View */
+            <div className="space-y-6">
+              {/* Overall Score & Assessment Banner */}
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                <div className="md:col-span-4 glass-card rounded-2xl p-6 flex flex-col items-center justify-center text-center">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-4 font-outfit">OVERALL SCORE</h3>
+                  <div className="relative flex items-center justify-center mb-3">
+                    <div className="w-32 h-32 rounded-full border-4 border-zinc-800 flex items-center justify-center">
+                      <div className="text-center">
+                        <span className="text-4xl font-extrabold text-zinc-100 font-outfit">{finalReport.overallScore}</span>
+                        <span className="text-zinc-500 text-xs block">/ 100</span>
                       </div>
-                      <span className="text-xs font-semibold tracking-wide text-zinc-200">{graph.entity.name}</span>
-                      <span className="text-[10px] text-zinc-500 mt-0.5 font-mono">Score: {graph.entity.knot_score}</span>
-                    </button>
-
-                    {/* Neighbor Nodes */}
-                    <div className="relative w-full grid grid-cols-4 gap-2 mt-16 z-10">
-                      {graph.neighbors.map((neighbor, index) => {
-                        const isSelected = !selectedNode?.isRoot && selectedNode?.peer === neighbor.peer;
-                        return (
-                          <button
-                            key={index}
-                            onClick={() => setSelectedNode({ ...neighbor, isRoot: false })}
-                            className={`flex flex-col items-center p-2 rounded-lg border text-center transition-all duration-300 ${
-                              isSelected
-                                ? 'bg-violet-950/60 border-violet-500 shadow-lg shadow-violet-500/15 scale-105'
-                                : 'bg-zinc-900/70 border-zinc-800/80 hover:border-violet-500/40'
-                            }`}
-                          >
-                            <div className="h-5 w-5 rounded-md bg-zinc-800 border border-zinc-700/50 flex items-center justify-center text-zinc-400 mb-1">
-                              <span className="text-[10px] font-bold">{index + 1}</span>
-                            </div>
-                            <span className="text-[10px] font-medium text-zinc-200 line-clamp-2">{neighbor.peer}</span>
-                            <span className="text-[8px] text-zinc-500 uppercase mt-0.5 tracking-wider">{neighbor.intent_meta.edge_kind}</span>
-                          </button>
-                        );
-                      })}
                     </div>
+                  </div>
+                  <span className="inline-block px-3 py-1 text-xs font-semibold text-emerald-400 bg-emerald-950/40 border border-emerald-900/50 rounded-full font-outfit">
+                    {finalReport.candidateStatus}
+                  </span>
+                  <p className="text-[11px] text-zinc-500 mt-2">Completed {finalReport.completedAt}</p>
+                </div>
 
-                    <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-20" xmlns="http://www.w3.org/2000/svg">
-                      {graph.neighbors.map((_, i) => {
-                        const total = graph.neighbors.length;
-                        const xPct = ((i + 0.5) / total) * 100;
-                        return <line key={i} x1="50%" y1="35%" x2={`${xPct}%`} y2="70%" stroke="#6366f1" strokeWidth="2" strokeDasharray="4 4" />;
-                      })}
-                    </svg>
+                <div className="md:col-span-8 glass-card rounded-2xl p-6 flex flex-col justify-between">
+                  <div>
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2 font-outfit">AI ASSESSMENT</h3>
+                    <p className="text-sm text-zinc-300 leading-relaxed italic mb-4">
+                      &ldquo;{finalReport.aiAssessment}&rdquo;
+                    </p>
+                  </div>
+
+                  {/* Highlights Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-zinc-800/60">
+                    <div className="p-3 bg-zinc-900/50 rounded-xl border border-zinc-800/80">
+                      <p className="text-[10px] text-zinc-500 uppercase font-semibold">Technical Core</p>
+                      <p className="text-base font-bold text-indigo-400 mt-0.5">{finalReport.scoreBreakdown.technicalCorrectness}%</p>
+                    </div>
+                    <div className="p-3 bg-zinc-900/50 rounded-xl border border-zinc-800/80">
+                      <p className="text-[10px] text-zinc-500 uppercase font-semibold">System Design</p>
+                      <p className="text-base font-bold text-violet-400 mt-0.5">{finalReport.scoreBreakdown.systemDesign}%</p>
+                    </div>
+                    <div className="p-3 bg-zinc-900/50 rounded-xl border border-zinc-800/80">
+                      <p className="text-[10px] text-zinc-500 uppercase font-semibold">Problem Solving</p>
+                      <p className="text-base font-bold text-emerald-400 mt-0.5">{finalReport.scoreBreakdown.problemSolving}%</p>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Inspector Card */}
-              <div className="lg:col-span-1 flex flex-col">
-                <div className="glass-card rounded-2xl p-6 flex-grow flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center space-x-2 pb-3 border-b border-zinc-800/60 mb-4">
-                      <div className="h-6 w-6 rounded-md bg-indigo-950/40 border border-indigo-900/50 flex items-center justify-center text-indigo-400">
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
+              {/* Score Breakdown Bars & Qualitative Analysis */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* Score Breakdown Bars */}
+                <div className="lg:col-span-6 glass-card rounded-2xl p-6 space-y-4">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 font-outfit mb-4">
+                    SCORE BREAKDOWN
+                  </h3>
+
+                  {[
+                    { label: 'Technical Correctness', val: finalReport.scoreBreakdown.technicalCorrectness },
+                    { label: 'Problem Solving', val: finalReport.scoreBreakdown.problemSolving },
+                    { label: 'System Design', val: finalReport.scoreBreakdown.systemDesign },
+                    { label: 'Architecture', val: finalReport.scoreBreakdown.architecture },
+                    { label: 'Communication', val: finalReport.scoreBreakdown.communication },
+                    { label: 'Depth', val: finalReport.scoreBreakdown.depth },
+                    { label: 'Trade-offs', val: finalReport.scoreBreakdown.tradeoffs },
+                  ].map((dim, idx) => (
+                    <div key={idx} className="space-y-1.5">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-zinc-300 font-medium">{dim.label}</span>
+                        <span className="font-mono text-indigo-400 font-semibold">{dim.val}%</span>
                       </div>
-                      <h3 className="font-semibold text-sm text-zinc-300 font-outfit">Memory Node Inspector</h3>
+                      <div className="h-2 w-full bg-zinc-900 rounded-full overflow-hidden border border-zinc-800">
+                        <div
+                          className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full transition-all duration-700"
+                          style={{ width: `${dim.val}%` }}
+                        />
+                      </div>
                     </div>
+                  ))}
+                </div>
 
-                    {selectedNode ? (
-                      <div className="space-y-4 animate-fade-in">
-                        <div>
-                          <p className="text-xs text-zinc-500 uppercase tracking-wide">Target Element / Node</p>
-                          <p className="text-base font-bold text-indigo-400 mt-0.5">{selectedNode.peer}</p>
-                        </div>
-
-                        <div>
-                          <p className="text-xs text-zinc-500 uppercase tracking-wide">Extracted Fact / Observation</p>
-                          <p className="text-sm text-zinc-300 mt-1 leading-relaxed bg-zinc-900/30 border border-zinc-850 p-2.5 rounded-lg max-h-32 overflow-y-auto custom-scrollbar">
-                            {selectedNode.fact}
-                          </p>
-                        </div>
-
-                        <div>
-                          <p className="text-xs text-zinc-500 uppercase tracking-wide">Cognitive Pattern</p>
-                          <span className="inline-block mt-1.5 px-2.5 py-1 text-xs font-medium text-violet-400 bg-violet-950/30 border border-violet-900/40 rounded-md font-mono">
-                            {selectedNode.intent_meta.cognitive_pattern}
-                          </span>
-                        </div>
-
-                        <div>
-                          <p className="text-xs text-zinc-500 uppercase tracking-wide">Detailed Logical Inference</p>
-                          <p className="text-sm text-zinc-400 mt-1 leading-relaxed italic">
-                            &ldquo;{selectedNode.intent_meta.why_connected}&rdquo;
-                          </p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center py-12 text-center">
-                        <svg className="w-10 h-10 text-zinc-700 animate-pulse mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
-                        </svg>
-                        <p className="text-xs text-zinc-500">Select a memory node from the graph to inspect distilled traits.</p>
-                      </div>
-                    )}
+                {/* Strengths & Improvements */}
+                <div className="lg:col-span-6 space-y-6">
+                  {/* Strengths */}
+                  <div className="glass-card rounded-2xl p-6">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-emerald-400 font-outfit mb-3 flex items-center space-x-1.5">
+                      <span>✓</span>
+                      <span>STRENGTHS</span>
+                    </h3>
+                    <ul className="space-y-2 text-xs text-zinc-300">
+                      {finalReport.strengths.map((str, idx) => (
+                        <li key={idx} className="flex items-start space-x-2">
+                          <span className="text-emerald-400 mt-0.5">✓</span>
+                          <span>{str}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
 
-                  <button
-                    onClick={restart}
-                    className="w-full mt-6 py-2.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white font-medium text-xs transition-all flex items-center justify-center space-x-2"
-                  >
-                    <span>Restart Simulation</span>
-                  </button>
+                  {/* Areas to Improve */}
+                  <div className="glass-card rounded-2xl p-6">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-amber-400 font-outfit mb-3 flex items-center space-x-1.5">
+                      <span>•</span>
+                      <span>AREAS TO IMPROVE</span>
+                    </h3>
+                    <ul className="space-y-2 text-xs text-zinc-300">
+                      {finalReport.areasToImprove.map((imp, idx) => (
+                        <li key={idx} className="flex items-start space-x-2">
+                          <span className="text-amber-400 mt-0.5">•</span>
+                          <span>{imp}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Recommended Topics */}
+                  <div className="glass-card rounded-2xl p-6">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-indigo-400 font-outfit mb-3 flex items-center space-x-1.5">
+                      <span>→</span>
+                      <span>RECOMMENDED TOPICS</span>
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {finalReport.recommendedTopics.map((top, idx) => (
+                        <span
+                          key={idx}
+                          className="px-3 py-1 text-xs font-medium text-indigo-300 bg-indigo-950/40 border border-indigo-900/50 rounded-lg"
+                        >
+                          &rarr; {top}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
+          ) : (
+            /* Graph Inspector View */
+            graph && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 glass-card rounded-2xl p-6 flex flex-col">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-4 font-outfit">Memory Graph Topology</h3>
+
+                  <div className="relative flex-grow min-h-[320px] bg-zinc-950/40 border border-zinc-900 rounded-xl flex items-center justify-center p-4 overflow-hidden">
+                    <div className="relative w-full max-w-lg h-full flex flex-col items-center justify-center py-6">
+                      <button
+                        onClick={() =>
+                          setSelectedNode({
+                            peer: graph.entity.name,
+                            isRoot: true,
+                            direction: 'out',
+                            fact: graph.entity.summary,
+                            intent_meta: {
+                              edge_kind: 'Profile Summary',
+                              cognitive_pattern: 'Aggregated intent',
+                              why_connected: graph.entity.knot_narrative,
+                            },
+                          })
+                        }
+                        className={`relative z-10 px-5 py-3 rounded-xl border flex flex-col items-center shadow-lg transition-all duration-300 ${
+                          selectedNode?.isRoot
+                            ? 'bg-indigo-900/60 border-indigo-500 shadow-indigo-500/10 scale-105'
+                            : 'bg-zinc-900/90 border-zinc-800 hover:border-indigo-500/50'
+                        }`}
+                      >
+                        <span className="text-xs font-semibold tracking-wide text-zinc-200">{graph.entity.name}</span>
+                        <span className="text-[10px] text-zinc-500 mt-0.5 font-mono">Score: {graph.entity.knot_score}</span>
+                      </button>
+
+                      <div className="relative w-full grid grid-cols-4 gap-2 mt-16 z-10">
+                        {graph.neighbors.map((neighbor, index) => {
+                          const isSelected = !selectedNode?.isRoot && selectedNode?.peer === neighbor.peer;
+                          return (
+                            <button
+                              key={index}
+                              onClick={() => setSelectedNode({ ...neighbor, isRoot: false })}
+                              className={`flex flex-col items-center p-2 rounded-lg border text-center transition-all duration-300 ${
+                                isSelected
+                                  ? 'bg-violet-950/60 border-violet-500 shadow-lg shadow-violet-500/15 scale-105'
+                                  : 'bg-zinc-900/70 border-zinc-800/80 hover:border-violet-500/40'
+                              }`}
+                            >
+                              <span className="text-[10px] font-medium text-zinc-200 line-clamp-2">{neighbor.peer}</span>
+                              <span className="text-[8px] text-zinc-500 uppercase mt-0.5">{neighbor.intent_meta.edge_kind}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="lg:col-span-1 glass-card rounded-2xl p-6 flex flex-col justify-between">
+                  <div>
+                    <h3 className="font-semibold text-sm text-zinc-300 font-outfit mb-4">Memory Node Inspector</h3>
+                    {selectedNode && (
+                      <div className="space-y-4 animate-fade-in text-xs">
+                        <div>
+                          <p className="text-zinc-500 uppercase">Target Node</p>
+                          <p className="text-sm font-bold text-indigo-400 mt-0.5">{selectedNode.peer}</p>
+                        </div>
+                        <div>
+                          <p className="text-zinc-500 uppercase">Fact / Observation</p>
+                          <p className="text-zinc-300 mt-1 leading-relaxed bg-zinc-900/40 p-2.5 rounded-lg">
+                            {selectedNode.fact}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )
           )}
+        </section>
+      )}
+
+      {/* STAGE 5: EVALUATION FAILED FALLBACK */}
+      {stage === 'failed' && (
+        <section className="relative z-10 w-full max-w-xl my-auto glass-card rounded-2xl p-8 border border-zinc-800 shadow-2xl text-center animate-slide-up">
+          <div className="w-16 h-16 rounded-full bg-amber-950/60 border-2 border-amber-500 flex items-center justify-center mx-auto mb-6 shadow-xl shadow-amber-500/20">
+            <svg className="w-8 h-8 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+
+          <h2 className="text-xl font-bold text-zinc-100 font-outfit mb-2">
+            Your interview was saved successfully.
+          </h2>
+          <p className="text-xs text-zinc-400 mb-6 leading-relaxed">
+            AI evaluation is temporarily unavailable due to high system demand. Your responses are securely preserved in the database.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <button
+              onClick={retryEvaluation}
+              className="px-6 py-2.5 rounded-lg bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-semibold text-xs transition-all shadow-lg shadow-indigo-500/20"
+            >
+              Retry Evaluation
+            </button>
+            <button
+              onClick={restart}
+              className="px-4 py-2.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-xs font-medium transition-all"
+            >
+              Back to Home
+            </button>
+          </div>
         </section>
       )}
 
       {/* Footer */}
       <footer className="relative z-10 w-full max-w-6xl text-center py-4 border-t border-zinc-900/60 mt-8">
         <p className="text-[10px] text-zinc-600">
-          The Interview Agent v2.0.0 &bull; Powered by Breeth API Intent-Aware Memory Distillation Graph.
+          The Interview Agent v2.5 &bull; AI Evaluation Engine &amp; Live Proctoring Protocol.
         </p>
       </footer>
     </main>

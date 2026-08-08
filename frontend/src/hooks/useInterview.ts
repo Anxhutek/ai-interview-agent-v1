@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import {
-  startInterview,
-  sendMessage,
-  getFeedback,
+  interviewApi,
   buildBreethGraph,
-  type InterviewFeedbackResponse,
+  type FinalInterviewReport,
+  type EvaluationStatusType,
   type BreethGraph,
 } from '@/lib/api';
 
@@ -17,11 +16,14 @@ export interface ChatBubble {
   role: 'agent' | 'user';
   text: string;
   timestamp: Date;
+  topic?: string;
+  questionIndex?: number;
 }
 
 // ── Interview Stage ───────────────────────────────
 
-export type InterviewStage = 'setup' | 'chat' | 'feedback';
+export type InterviewStage = 'setup' | 'chat' | 'generating_report' | 'report' | 'failed';
+export type SubmissionState = 'idle' | 'saving' | 'saved' | 'error';
 
 // ── Hook Return ───────────────────────────────────
 
@@ -32,13 +34,22 @@ export interface UseInterviewReturn {
   isTyping: boolean;
   error: string | null;
   isFinished: boolean;
-  turnCount: number;
+  questionIndex: number;
+  totalQuestions: number;
+  currentTopic: string;
   candidateName: string;
-  feedback: InterviewFeedbackResponse | null;
+  submissionState: SubmissionState;
+  evaluationState: EvaluationStatusType;
+  draftText: string;
+  finalReport: FinalInterviewReport | null;
   graph: BreethGraph | null;
+  isPlayingAudio: boolean;
+  setDraftText: (val: string) => void;
   beginInterview: (candidateId: string, candidateName: string) => Promise<void>;
-  sendAnswer: (message: string) => Promise<void>;
-  requestFeedback: () => Promise<void>;
+  sendAnswer: (answer: string) => Promise<boolean>;
+  requestReport: () => Promise<void>;
+  retryEvaluation: () => Promise<void>;
+  playQuestionAudio: (text: string) => void;
 }
 
 // ── Hook Implementation ───────────────────────────
@@ -50,15 +61,47 @@ export function useInterview(): UseInterviewReturn {
   const [isTyping, setIsTyping] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isFinished, setIsFinished] = useState(false);
-  const [turnCount, setTurnCount] = useState(0);
+  const [questionIndex, setQuestionIndex] = useState(1);
+  const [totalQuestions, setTotalQuestions] = useState(8);
+  const [currentTopic, setCurrentTopic] = useState('System & Architecture Fundamentals');
   const [candidateName, setCandidateName] = useState('');
-  const [feedback, setFeedback] = useState<InterviewFeedbackResponse | null>(null);
+  const [submissionState, setSubmissionState] = useState<SubmissionState>('idle');
+  const [evaluationState, setEvaluationState] = useState<EvaluationStatusType>('pending');
+  const [draftText, setDraftText] = useState('');
+  const [finalReport, setFinalReport] = useState<FinalInterviewReport | null>(null);
   const [graph, setGraph] = useState<BreethGraph | null>(null);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
-  const addBubble = (role: 'agent' | 'user', text: string) => {
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Clean up speech synthesis & polling on unmount
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+      }
+    };
+  }, []);
+
+  const addBubble = (
+    role: 'agent' | 'user',
+    text: string,
+    topic?: string,
+    qIdx?: number
+  ) => {
     setDialogue(prev => [
       ...prev,
-      { id: `${role}-${Date.now()}-${Math.random()}`, role, text, timestamp: new Date() },
+      {
+        id: `${role}-${Date.now()}-${Math.random()}`,
+        role,
+        text,
+        timestamp: new Date(),
+        topic,
+        questionIndex: qIdx,
+      },
     ]);
   };
 
@@ -69,66 +112,155 @@ export function useInterview(): UseInterviewReturn {
     setCandidateName(name);
     setIsTyping(true);
     try {
-      const res = await startInterview({ candidateId, candidateName: name });
+      const res = await interviewApi.startInterview({ candidateId, candidateName: name });
       setSessionId(res.sessionId);
+      setTotalQuestions(res.totalQuestions || 8);
+      setCurrentTopic(res.currentTopic || 'System & Architecture Fundamentals');
+      setQuestionIndex(1);
       setStage('chat');
-      addBubble('agent', res.firstQuestion);
+      addBubble('agent', res.firstQuestion, res.currentTopic || 'System Architecture', 1);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to start interview');
+      setError(e instanceof Error ? e.message : 'Failed to initialize interview');
     } finally {
       setIsTyping(false);
     }
   }, []);
 
-  // ── Send Answer (Multi-Turn Conversational) ─────
+  // ── Poll Evaluation Status in Background ────────
+
+  const startEvaluationPolling = useCallback((sid: string) => {
+    if (pollingRef.current) clearInterval(pollingRef.current);
+
+    let attempts = 0;
+    pollingRef.current = setInterval(async () => {
+      attempts++;
+      try {
+        const res = await interviewApi.getEvaluationStatus(sid);
+        setEvaluationState(res.status);
+        if (res.status === 'completed' || res.status === 'failed' || attempts > 15) {
+          if (pollingRef.current) clearInterval(pollingRef.current);
+        }
+      } catch {
+        if (attempts > 5 && pollingRef.current) {
+          clearInterval(pollingRef.current);
+        }
+      }
+    }, 4000);
+  }, []);
+
+  // ── Send Answer (Safety Flow) ───────────────────
 
   const sendAnswer = useCallback(
-    async (message: string) => {
-      if (!sessionId) return;
+    async (answer: string): Promise<boolean> => {
+      if (!sessionId || !answer.trim()) return false;
       setError(null);
+      setSubmissionState('saving');
 
-      // Add user bubble immediately
-      addBubble('user', message);
+      // Add user's answer immediately to dialogue
+      addBubble('user', answer);
       setIsTyping(true);
 
       try {
-        const res = await sendMessage({ sessionId, message });
-        setTurnCount(prev => prev + 1);
+        const res = await interviewApi.submitAnswer(sessionId, answer, questionIndex - 1);
+        
+        // Confirm answer is saved
+        setSubmissionState('saved');
+        setDraftText(''); // Clear draft safely only after successful save
 
-        // Simulate brief typing delay for realism
-        await new Promise(r => setTimeout(r, 600));
-        addBubble('agent', res.reply);
+        // Trigger background evaluation polling
+        startEvaluationPolling(sessionId);
 
-        if (res.isFinished) {
+        // Advance question progress
+        const nextQ = questionIndex + 1;
+        setQuestionIndex(Math.min(nextQ, totalQuestions));
+        if (res.currentTopic) setCurrentTopic(res.currentTopic);
+
+        // Add subtle delay before agent speaks
+        await new Promise(r => setTimeout(r, 650));
+        addBubble('agent', res.reply, res.currentTopic, nextQ);
+
+        if (res.isFinished || nextQ > totalQuestions) {
           setIsFinished(true);
         }
+
+        setTimeout(() => setSubmissionState('idle'), 3000);
+        return true;
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to send message');
+        setSubmissionState('error');
+        setError(e instanceof Error ? e.message : 'AI service is temporarily busy. Your answer draft is preserved.');
+        return false;
       } finally {
         setIsTyping(false);
       }
     },
-    [sessionId]
+    [sessionId, questionIndex, totalQuestions, startEvaluationPolling]
   );
 
-  // ── Request Feedback ────────────────────────────
+  // ── Request Final Report ────────────────────────
 
-  const requestFeedback = useCallback(async () => {
+  const requestReport = useCallback(async () => {
     if (!sessionId) return;
     setError(null);
-    setIsTyping(true);
+    setStage('generating_report');
 
     try {
-      const fb = await getFeedback(sessionId);
-      setFeedback(fb);
-      setGraph(buildBreethGraph(fb, candidateName, turnCount));
-      setStage('feedback');
+      // 1. Complete interview on backend
+      await interviewApi.completeInterview(sessionId);
+
+      // 2. Fetch structured final evaluation report
+      const report = await interviewApi.getFinalReport(sessionId, candidateName);
+      setFinalReport(report);
+      setGraph(buildBreethGraph(report, candidateName, totalQuestions));
+      
+      // Delay slightly for smooth generation transition
+      await new Promise(r => setTimeout(r, 1800));
+      setStage('report');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to fetch feedback');
-    } finally {
-      setIsTyping(false);
+      setError(e instanceof Error ? e.message : 'AI evaluation is temporarily unavailable.');
+      setStage('failed');
     }
-  }, [sessionId, candidateName, turnCount]);
+  }, [sessionId, candidateName, totalQuestions]);
+
+  // ── Retry Evaluation ────────────────────────────
+
+  const retryEvaluation = useCallback(async () => {
+    if (!sessionId) return;
+    setError(null);
+    setStage('generating_report');
+    try {
+      await interviewApi.retryEvaluation(sessionId);
+      const report = await interviewApi.getFinalReport(sessionId, candidateName);
+      setFinalReport(report);
+      setGraph(buildBreethGraph(report, candidateName, totalQuestions));
+      setStage('report');
+    } catch {
+      setError('AI evaluation is temporarily unavailable. Please try again in a few moments.');
+      setStage('failed');
+    }
+  }, [sessionId, candidateName, totalQuestions]);
+
+  // ── Audio Question Reader (Web Speech API) ───────
+
+  const playQuestionAudio = useCallback((text: string) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+
+    if (isPlayingAudio) {
+      window.speechSynthesis.cancel();
+      setIsPlayingAudio(false);
+      return;
+    }
+
+    const cleanText = text.replace(/[*_#`]/g, '');
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+
+    utterance.onstart = () => setIsPlayingAudio(true);
+    utterance.onend = () => setIsPlayingAudio(false);
+    utterance.onerror = () => setIsPlayingAudio(false);
+
+    window.speechSynthesis.speak(utterance);
+  }, [isPlayingAudio]);
 
   return {
     stage,
@@ -137,12 +269,21 @@ export function useInterview(): UseInterviewReturn {
     isTyping,
     error,
     isFinished,
-    turnCount,
+    questionIndex,
+    totalQuestions,
+    currentTopic,
     candidateName,
-    feedback,
+    submissionState,
+    evaluationState,
+    draftText,
+    finalReport,
     graph,
+    isPlayingAudio,
+    setDraftText,
     beginInterview,
     sendAnswer,
-    requestFeedback,
+    requestReport,
+    retryEvaluation,
+    playQuestionAudio,
   };
 }

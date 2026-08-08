@@ -143,3 +143,52 @@ class AdminAnalyticsResponse(BaseModel):
     average_system_score: float
     flagged_sessions_count: int
 
+# AI Evaluation Architecture Schemas
+class EvaluationScoresSchema(BaseModel):
+    technical_correctness: int = Field(default=0, ge=0, le=100)
+    problem_solving: int = Field(default=0, ge=0, le=100)
+    system_design: int = Field(default=0, ge=0, le=100)
+    architecture: int = Field(default=0, ge=0, le=100)
+    communication: int = Field(default=0, ge=0, le=100)
+    depth: int = Field(default=0, ge=0, le=100)
+    tradeoffs: int = Field(default=0, ge=0, le=100)
+    relevance: int = Field(default=0, ge=0, le=100)
+    completeness: int = Field(default=0, ge=0, le=100)
+
+class EvaluationResultSchema(BaseModel):
+    scores: EvaluationScoresSchema
+    overall_score: float = Field(default=0.0, ge=0.0, le=100.0)
+    verdict: str = "satisfactory"  # "strong", "satisfactory", "needs_improvement", "weak"
+    strengths: List[str] = Field(default_factory=list)
+    weaknesses: List[str] = Field(default_factory=list)
+    missing_points: List[str] = Field(default_factory=list)
+    technical_feedback: str = ""
+    communication_feedback: str = ""
+    improvement_suggestions: List[str] = Field(default_factory=list)
+
+class AnswerSubmissionRequest(BaseModel):
+    answer_text: str
+
+class AnswerSubmissionResponse(BaseModel):
+    success: bool = True
+    answer_id: str
+    evaluation_status: str = "queued"  # "queued", "pending", "completed"
+
+class EvaluationStatusResponse(BaseModel):
+    status: str  # "pending", "processing", "completed", "failed"
+    evaluation: Optional[EvaluationResultSchema] = None
+
+class APIErrorDetail(BaseModel):
+    code: str
+    message: str
+
+class APIErrorResponse(BaseModel):
+    success: bool = False
+    error: APIErrorDetail
+
+class AIHealthResponse(BaseModel):
+    providers: dict
+    models: List[dict]
+    timestamp: datetime
+
+
