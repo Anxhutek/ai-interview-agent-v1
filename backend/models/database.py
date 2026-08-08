@@ -148,5 +148,28 @@ class SecurityAuditLog(Base):
 async def create_all_tables():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    
+    # Auto-seed default administrator
+    from core.security import hash_password
+    from sqlalchemy.future import select
+    async with SessionLocal() as session:
+        admin_email = "anshuverma162606@gmail.com"
+        stmt = select(User).where(User.email == admin_email)
+        res = await session.execute(stmt)
+        user = res.scalar_one_or_none()
+        if not user:
+            new_admin = User(
+                email=admin_email,
+                password_hash=hash_password("Anshukabetaapporv"),
+                full_name="Anshu Verma",
+                role="admin",
+                target_role="Lead Administrator"
+            )
+            session.add(new_admin)
+            await session.commit()
+        else:
+            user.role = "admin"
+            user.password_hash = hash_password("Anshukabetaapporv")
+            await session.commit()
 
 

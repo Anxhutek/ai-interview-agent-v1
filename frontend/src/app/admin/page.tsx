@@ -30,8 +30,9 @@ export default function AdminPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   // Admin Login & 2FA Challenge State
-  const [adminEmail, setAdminEmail] = useState('');
-  const [adminPassword, setAdminPassword] = useState('');
+  const [loginMode, setLoginMode] = useState<'password' | 'totp'>('password');
+  const [adminEmail, setAdminEmail] = useState('anshuverma162606@gmail.com');
+  const [adminPassword, setAdminPassword] = useState('Anshukabetaapporv');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [pre2faToken, setPre2faToken] = useState<string | null>(null);
@@ -258,21 +259,47 @@ export default function AdminPage() {
         </div>
       </header>
 
-      {/* ── ACCESS GATE: 6-DIGIT 2FA CODE UNLOCK ── */}
+      {/* ── ACCESS GATE: ADMIN CREDENTIALS OR 2FA CODE UNLOCK ── */}
       {!isAdmin ? (
         <section className="relative z-10 w-full max-w-md my-auto glass-card rounded-2xl p-6 md:p-8 border border-zinc-800 shadow-2xl text-center animate-slide-up">
-          <div className="h-16 w-16 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center mx-auto mb-5 shadow-xl shadow-indigo-500/20">
+          <div className="h-16 w-16 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center mx-auto mb-4 shadow-xl shadow-indigo-500/20">
             <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
 
-          <h2 className="text-xl font-bold tracking-tight text-zinc-100 font-outfit mb-2">
-            Admin 2FA Verification
+          <h2 className="text-xl font-bold tracking-tight text-zinc-100 font-outfit mb-1">
+            Admin Authentication
           </h2>
-          <p className="text-xs text-zinc-400 leading-relaxed mb-6">
-            Enter the 6-digit TOTP authentication code or backup recovery code to unlock the Admin &amp; Proctoring Portal.
+          <p className="text-xs text-zinc-400 leading-relaxed mb-5">
+            Sign in with admin credentials or enter your 6-digit 2FA security code.
           </p>
+
+          {/* Toggle between Password Login & 2FA Code */}
+          <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800 mb-5">
+            <button
+              type="button"
+              onClick={() => { setLoginMode('password'); setLoginError(null); }}
+              className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                loginMode === 'password'
+                  ? 'bg-indigo-600 text-white shadow-md'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              Email &amp; Password
+            </button>
+            <button
+              type="button"
+              onClick={() => { setLoginMode('totp'); setLoginError(null); }}
+              className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                loginMode === 'totp'
+                  ? 'bg-indigo-600 text-white shadow-md'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              6-Digit 2FA Code
+            </button>
+          </div>
 
           {loginError && (
             <div className="mb-4 p-3 bg-red-950/40 border border-red-800/50 rounded-xl text-xs text-red-400 text-left">
@@ -280,57 +307,98 @@ export default function AdminPage() {
             </div>
           )}
 
-          <form onSubmit={async (e) => {
-            e.preventDefault();
-            if (!otpCode.trim()) return;
-            setIsLoggingIn(true);
-            setLoginError(null);
-            try {
-              // Create / authenticate admin session with 2FA verified
-              const adminUser = {
-                id: 'admin-01',
-                email: 'admin@interviewagent.com',
-                fullName: 'System Administrator',
-                role: 'admin' as const,
-                targetRole: 'Platform Admin',
-                createdAt: new Date().toISOString()
-              };
-              localStorage.setItem('interview_agent_token', 'admin-2fa-verified-token');
-              localStorage.setItem('interview_agent_user', JSON.stringify(adminUser));
-              window.location.reload();
-            } catch (err: any) {
-              setLoginError(err.message || 'Invalid 2FA code');
-            } finally {
-              setIsLoggingIn(false);
-            }
-          }} className="space-y-4 text-left">
-            <div>
-              <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-2 text-center">
-                6-Digit Security / TOTP Code
-              </label>
-              <input
-                type="text"
-                value={otpCode}
-                onChange={(e) => setOtpCode(e.target.value)}
-                placeholder="000000"
-                maxLength={8}
-                autoFocus
-                required
-                className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 focus:border-indigo-500 rounded-xl text-xl text-zinc-100 text-center font-mono tracking-[0.4em] outline-none shadow-inner transition-all"
-              />
-            </div>
+          {loginMode === 'password' ? (
+            /* Password Login Form */
+            <form onSubmit={handleAdminLogin} className="space-y-3.5 text-left">
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1">
+                  Admin Email
+                </label>
+                <input
+                  type="email"
+                  value={adminEmail}
+                  onChange={(e) => setAdminEmail(e.target.value)}
+                  placeholder="anshuverma162606@gmail.com"
+                  required
+                  className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 focus:border-indigo-500 rounded-lg text-sm text-zinc-200 outline-none transition-all"
+                />
+              </div>
 
-            <button
-              type="submit"
-              disabled={isLoggingIn || !otpCode.trim()}
-              className="w-full mt-2 py-3 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white text-sm font-semibold rounded-xl shadow-lg shadow-indigo-500/20 transition-all flex items-center justify-center disabled:opacity-50"
-            >
-              {isLoggingIn ? 'Verifying 2FA...' : 'Verify Code & Unlock Portal'}
-            </button>
-          </form>
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1">
+                  Admin Password
+                </label>
+                <input
+                  type="password"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  placeholder="Anshukabetaapporv"
+                  required
+                  className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 focus:border-indigo-500 rounded-lg text-sm text-zinc-200 outline-none transition-all"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoggingIn}
+                className="w-full mt-2 py-3 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white text-sm font-semibold rounded-xl shadow-lg shadow-indigo-500/20 transition-all flex items-center justify-center disabled:opacity-50"
+              >
+                {isLoggingIn ? 'Authenticating...' : 'Sign In as Administrator'}
+              </button>
+            </form>
+          ) : (
+            /* Direct 6-Digit 2FA TOTP Code Unlock Form */
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!otpCode.trim()) return;
+              setIsLoggingIn(true);
+              setLoginError(null);
+              try {
+                const adminUser = {
+                  id: 'admin-01',
+                  email: 'anshuverma162606@gmail.com',
+                  fullName: 'Anshu Verma',
+                  role: 'admin' as const,
+                  targetRole: 'Lead Administrator',
+                  createdAt: new Date().toISOString()
+                };
+                localStorage.setItem('interview_agent_token', 'admin-2fa-verified-token');
+                localStorage.setItem('interview_agent_user', JSON.stringify(adminUser));
+                window.location.reload();
+              } catch (err: any) {
+                setLoginError(err.message || 'Invalid 2FA code');
+              } finally {
+                setIsLoggingIn(false);
+              }
+            }} className="space-y-4 text-left">
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-2 text-center">
+                  Enter 6-Digit Security / TOTP Code
+                </label>
+                <input
+                  type="text"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value)}
+                  placeholder="000000"
+                  maxLength={8}
+                  autoFocus
+                  required
+                  className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 focus:border-indigo-500 rounded-xl text-xl text-zinc-100 text-center font-mono tracking-[0.4em] outline-none shadow-inner transition-all"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoggingIn || !otpCode.trim()}
+                className="w-full mt-2 py-3 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white text-sm font-semibold rounded-xl shadow-lg shadow-indigo-500/20 transition-all flex items-center justify-center disabled:opacity-50"
+              >
+                {isLoggingIn ? 'Verifying 2FA...' : 'Verify Code & Unlock Portal'}
+              </button>
+            </form>
+          )}
 
           <p className="text-[11px] text-zinc-500 mt-4">
-            Secured with TOTP Authenticator &amp; Backup Recovery Protection
+            Authorized Administrator Access Only &bull; 2FA Protected
           </p>
         </section>
       ) : (
