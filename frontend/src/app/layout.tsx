@@ -14,7 +14,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "The Interview Agent | AI Conversational Simulator",
-  description: "An AI-powered interview simulator built with Google Gemini and Breeth Memory API to evaluate candidate skills and distill profiles.",
+  description: "An AI-powered interview simulator built with the Breeth Memory Distillation API to evaluate candidate skills and distill cognitive profiles.",
 };
 
 export default function RootLayout({

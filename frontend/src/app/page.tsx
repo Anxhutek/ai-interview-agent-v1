@@ -1,32 +1,30 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { useInterview, Message } from '../hooks/useInterview';
+import { useInterview } from '../hooks/useInterview';
+import type { BreethGraphNeighbor } from '@/lib/api';
 
 export default function Home() {
   const {
-    step,
-    candidateName,
-    candidateId,
-    curriculum,
+    stage,
     sessionId,
-    messages,
+    dialogue,
     isTyping,
-    isLoading,
     error,
-    results,
+    isFinished,
+    turnCount,
+    candidateName,
+    feedback,
     graph,
-    turnsCount,
-    totalQuestions,
-    start,
-    send,
-    restart,
+    beginInterview,
+    sendAnswer,
+    requestFeedback,
   } = useInterview();
 
   // Local state for setup form
   const [formName, setFormName] = useState('');
   const [formId, setFormId] = useState('');
-  const [formCurriculum, setFormCurriculum] = useState('Frontend Engineer');
+  const [isLoading, setIsLoading] = useState(false);
 
   // Input state for messaging
   const [inputText, setInputText] = useState('');
@@ -35,14 +33,19 @@ export default function Home() {
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Local state for graph detail modal / panel
-  const [selectedNode, setSelectedNode] = useState<any>(null);
+  const [selectedNode, setSelectedNode] = useState<
+    (BreethGraphNeighbor & { isRoot?: boolean }) | null
+  >(null);
+
+  // Total questions in the curriculum
+  const TOTAL_QUESTIONS = 8;
 
   // Auto scroll to bottom on new messages
   useEffect(() => {
     if (chatEndRef.current) {
       chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages, isTyping]);
+  }, [dialogue, isTyping]);
 
   // Set default selected node for graph details
   useEffect(() => {
@@ -50,19 +53,22 @@ export default function Home() {
       setSelectedNode({
         peer: graph.entity.name,
         isRoot: true,
+        direction: 'out',
         fact: graph.entity.summary,
         intent_meta: {
-          edge_kind: "Candidate Profile",
-          cognitive_pattern: "Synthesis of turns",
-          why_connected: graph.entity.knot_narrative
-        }
+          edge_kind: 'Candidate Profile',
+          cognitive_pattern: 'Synthesis of turns',
+          why_connected: graph.entity.knot_narrative,
+        },
       });
     }
   }, [graph]);
 
   const handleStart = async (e: React.FormEvent) => {
     e.preventDefault();
-    await start(formName, formId, formCurriculum);
+    setIsLoading(true);
+    await beginInterview(formId, formName);
+    setIsLoading(false);
   };
 
   const handleSend = async (e: React.FormEvent) => {
@@ -70,7 +76,7 @@ export default function Home() {
     if (!inputText.trim()) return;
     const textToSend = inputText;
     setInputText('');
-    await send(textToSend);
+    await sendAnswer(textToSend);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -78,6 +84,10 @@ export default function Home() {
       e.preventDefault();
       handleSend(e);
     }
+  };
+
+  const restart = () => {
+    window.location.reload();
   };
 
   return (
@@ -98,11 +108,11 @@ export default function Home() {
             <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-zinc-100 to-zinc-400 bg-clip-text text-transparent font-outfit">
               The Interview Agent
             </h1>
-            <p className="text-xs text-zinc-500">Gemini & Breeth Memory Layer Protocol</p>
+            <p className="text-xs text-zinc-500">Powered by Breeth Memory Distillation Protocol</p>
           </div>
         </div>
 
-        {step !== 'setup' && (
+        {stage !== 'setup' && (
           <button
             onClick={restart}
             className="px-3.5 py-1.5 text-xs font-medium text-zinc-400 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg transition-all flex items-center space-x-1.5"
@@ -116,12 +126,12 @@ export default function Home() {
       </header>
 
       {/* STAGE 1: SETUP */}
-      {step === 'setup' && (
+      {stage === 'setup' && (
         <section className="relative z-10 w-full max-w-xl my-auto animate-slide-up">
           <div className="glass-card rounded-2xl p-6 md:p-8">
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-semibold tracking-tight text-zinc-100 font-outfit">Setup Interview Session</h2>
-              <p className="text-sm text-zinc-400 mt-1">Configure candidate parameters to initialize memory episodes.</p>
+              <h2 className="text-2xl font-semibold tracking-tight text-zinc-100 font-outfit">Start Your Interview</h2>
+              <p className="text-sm text-zinc-400 mt-1">Enter your details to begin an 8-module technical deep-dive powered by Breeth memory distillation.</p>
             </div>
 
             {error && (
@@ -166,31 +176,6 @@ export default function Home() {
                 />
               </div>
 
-              <div>
-                <label htmlFor="curriculum" className="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
-                  Target Evaluation Curriculum
-                </label>
-                <div className="relative">
-                  <select
-                    id="curriculum"
-                    value={formCurriculum}
-                    onChange={(e) => setFormCurriculum(e.target.value)}
-                    disabled={isLoading}
-                    className="w-full px-4 py-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none text-zinc-200 appearance-none transition-all text-sm cursor-pointer"
-                  >
-                    <option value="Frontend Engineer">Frontend Engineer (React 19, Next.js, CSS v4)</option>
-                    <option value="Backend Engineer">Backend Engineer (FastAPI, Python, SQL, Redis)</option>
-                    <option value="Fullstack Engineer">Fullstack Engineer (TypeScript, DB design, API scaling)</option>
-                    <option value="DevOps & Cloud Engineer">DevOps & Cloud Engineer (Docker, CI/CD, Terraform)</option>
-                  </select>
-                  <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-zinc-500">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
               <button
                 type="submit"
                 disabled={isLoading}
@@ -202,7 +187,7 @@ export default function Home() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                    <span>Initializing Session...</span>
+                    <span>Connecting to Breeth...</span>
                   </>
                 ) : (
                   <span>Start Interview Simulation</span>
@@ -214,11 +199,10 @@ export default function Home() {
       )}
 
       {/* STAGE 2: ACTIVE CHAT */}
-      {step === 'chat' && (
+      {stage === 'chat' && (
         <section className="relative z-10 w-full max-w-6xl flex-grow grid grid-cols-1 lg:grid-cols-4 gap-6 animate-slide-up">
           {/* Left panel: Info & Statistics */}
           <div className="lg:col-span-1 flex flex-col space-y-4">
-            {/* Active Candidate Details */}
             <div className="glass-card rounded-xl p-4 flex flex-col space-y-3">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 font-outfit">Session Context</h3>
               <div>
@@ -226,18 +210,17 @@ export default function Home() {
                 <p className="text-sm font-semibold text-zinc-100">{candidateName}</p>
               </div>
               <div>
-                <p className="text-xs text-zinc-400">ID / Email</p>
-                <p className="text-xs font-mono text-zinc-300 break-all">{candidateId}</p>
+                <p className="text-xs text-zinc-400">Session ID</p>
+                <p className="text-xs font-mono text-zinc-300 break-all">{sessionId}</p>
               </div>
               <div className="pt-2 border-t border-zinc-800/60">
                 <p className="text-xs text-zinc-400">Evaluation Core</p>
                 <span className="inline-block mt-1 px-2.5 py-1 text-xs font-medium text-indigo-400 bg-indigo-950/40 border border-indigo-900/50 rounded-full">
-                  {curriculum}
+                  Systems &amp; Architecture
                 </span>
               </div>
             </div>
 
-            {/* Session Stats */}
             <div className="glass-card rounded-xl p-4 flex flex-col space-y-3">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 font-outfit">Metrics</h3>
               <div>
@@ -249,48 +232,61 @@ export default function Home() {
                   </span>
                 </div>
                 <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full transition-all duration-500" 
-                    style={{ width: `${Math.min(((turnsCount + 1) / totalQuestions) * 100, 100)}%` }}
+                  <div
+                    className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full transition-all duration-500"
+                    style={{ width: `${Math.min(((turnCount + 1) / TOTAL_QUESTIONS) * 100, 100)}%` }}
                   ></div>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-2 pt-2 text-center">
                 <div className="p-2 bg-zinc-900/50 border border-zinc-800/40 rounded-lg">
-                  <p className="text-xs text-zinc-400">Active Question</p>
-                  <p className="text-lg font-bold text-zinc-200 mt-0.5">{turnsCount + 1}</p>
+                  <p className="text-xs text-zinc-400">Turns Completed</p>
+                  <p className="text-lg font-bold text-zinc-200 mt-0.5">{turnCount}</p>
                 </div>
                 <div className="p-2 bg-zinc-900/50 border border-zinc-800/40 rounded-lg">
-                  <p className="text-xs text-zinc-400">Total Questions</p>
-                  <p className="text-lg font-bold text-zinc-200 mt-0.5">{totalQuestions}</p>
+                  <p className="text-xs text-zinc-400">Total Modules</p>
+                  <p className="text-lg font-bold text-zinc-200 mt-0.5">{TOTAL_QUESTIONS}</p>
                 </div>
               </div>
             </div>
+
+            {/* Show "Get Feedback" button when interview is finished */}
+            {isFinished && (
+              <button
+                onClick={requestFeedback}
+                className="w-full py-3 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-medium text-sm transition-all flex items-center justify-center shadow-lg shadow-emerald-500/20 active:scale-[0.99] animate-fade-in"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>View Feedback &amp; Score</span>
+              </button>
+            )}
           </div>
 
           {/* Right panel: Chat Box */}
           <div className="lg:col-span-3 glass-card rounded-xl flex flex-col h-[65vh] md:h-[70vh] overflow-hidden">
-            {/* Chat Header */}
             <div className="px-6 py-4 border-b border-zinc-800/60 bg-zinc-900/40 flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <div className="h-2 w-2 rounded-full bg-indigo-500 animate-ping"></div>
-                <h3 className="font-semibold text-sm text-zinc-200">Interview Conversation Loop</h3>
+                <div className={`h-2 w-2 rounded-full ${isFinished ? 'bg-emerald-500' : 'bg-indigo-500 animate-ping'}`}></div>
+                <h3 className="font-semibold text-sm text-zinc-200">
+                  {isFinished ? 'Interview Complete' : 'Interview Conversation Loop'}
+                </h3>
               </div>
               <span className="text-xs text-zinc-500 font-sans">
-                Question {turnsCount + 1} of {totalQuestions}
+                Turn {turnCount} of {TOTAL_QUESTIONS}
               </span>
             </div>
 
-            {/* Chat Scrollbox */}
             <div className="flex-grow overflow-y-auto p-6 space-y-4 custom-scrollbar bg-zinc-950/20">
-              {messages.map((msg) => (
+              {dialogue.map((msg) => (
                 <div
                   key={msg.id}
-                  className={`flex ${msg.sender === 'candidate' ? 'justify-end' : 'justify-start'} animate-fade-in`}
+                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
                 >
                   <div className={`flex items-start space-x-2.5 max-w-[85%] md:max-w-[75%]`}>
-                    {msg.sender === 'agent' && (
+                    {msg.role === 'agent' && (
                       <div className="h-8 w-8 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0 mt-0.5">
                         <svg className="w-4 h-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -300,7 +296,7 @@ export default function Home() {
                     <div className="flex flex-col">
                       <div
                         className={`rounded-2xl px-4 py-2.5 text-sm ${
-                          msg.sender === 'candidate'
+                          msg.role === 'user'
                             ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-tr-none'
                             : 'bg-zinc-900 border border-zinc-800 text-zinc-200 rounded-tl-none font-medium'
                         }`}
@@ -334,22 +330,22 @@ export default function Home() {
               <div ref={chatEndRef} />
             </div>
 
-            {/* Chat Input */}
+            {/* Chat Input — disabled when finished */}
             <form onSubmit={handleSend} className="p-4 border-t border-zinc-800/60 bg-zinc-900/30 flex items-end space-x-3">
               <div className="flex-grow relative">
                 <textarea
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Type your response... (Press Enter to send)"
-                  disabled={isTyping || isLoading}
+                  placeholder={isFinished ? 'Interview complete! Click "View Feedback" to see your results.' : 'Type your response... (Press Enter to send)'}
+                  disabled={isTyping || isFinished}
                   rows={2}
-                  className="w-full bg-zinc-950/60 border border-zinc-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none rounded-lg py-2.5 px-4 text-sm text-zinc-200 placeholder-zinc-600 resize-none custom-scrollbar transition-all"
+                  className="w-full bg-zinc-950/60 border border-zinc-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none rounded-lg py-2.5 px-4 text-sm text-zinc-200 placeholder-zinc-600 resize-none custom-scrollbar transition-all disabled:opacity-50"
                 />
               </div>
               <button
                 type="submit"
-                disabled={!inputText.trim() || isTyping || isLoading}
+                disabled={!inputText.trim() || isTyping || isFinished}
                 className="h-10 w-10 shrink-0 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white rounded-lg transition-all flex items-center justify-center shadow-lg shadow-indigo-500/20 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
               >
                 <svg className="w-4.5 h-4.5 transform rotate-90 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -362,19 +358,16 @@ export default function Home() {
       )}
 
       {/* STAGE 3: FEEDBACK / DASHBOARD */}
-      {step === 'feedback' && results && (
+      {stage === 'feedback' && feedback && (
         <section className="relative z-10 w-full max-w-6xl flex-grow flex flex-col space-y-6 animate-slide-up">
-          {/* Top Level: Score and Summary Header */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Score circle card */}
             <div className="glass-card rounded-2xl p-6 flex flex-col items-center justify-center text-center">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-4 font-outfit">Overall Score</h3>
               <div className="relative flex items-center justify-center">
-                {/* Visual Radial Ring */}
                 <div className="w-36 h-36 rounded-full border-4 border-zinc-800 flex items-center justify-center">
                   <div className="absolute inset-0.5 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin-slow"></div>
                   <div className="text-center">
-                    <span className="text-4xl font-extrabold text-zinc-100">{Math.round(results.overall_score)}</span>
+                    <span className="text-4xl font-extrabold text-zinc-100">{feedback.score}</span>
                     <span className="text-zinc-500 text-sm">/100</span>
                   </div>
                 </div>
@@ -384,20 +377,19 @@ export default function Home() {
               </span>
             </div>
 
-            {/* Narrative synthesis */}
             <div className="glass-card rounded-2xl p-6 md:col-span-2 flex flex-col justify-between">
               <div>
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2 font-outfit">Cognitive Profile Synthesis</h3>
                 <h4 className="text-lg font-bold text-zinc-100 font-outfit mb-3">
-                  {graph?.entity.summary || "Candidate showing backend leaning with focus on performance."}
+                  {graph?.entity.summary || 'Candidate showing strong technical fundamentals.'}
                 </h4>
-                <p className="text-sm text-zinc-400 leading-relaxed">{results.summary}</p>
+                <p className="text-sm text-zinc-400 leading-relaxed whitespace-pre-line">{feedback.feedback}</p>
               </div>
               <div className="flex items-center space-x-2.5 pt-4 mt-4 border-t border-zinc-800/40 text-xs text-zinc-500">
                 <svg className="w-4 h-4 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span>Interactive network elements are distilled from candidate memory traces.</span>
+                <span>Distilled profile sourced from Breeth intent-aware memory graph.</span>
               </div>
             </div>
           </div>
@@ -405,30 +397,28 @@ export default function Home() {
           {/* Interactive Graph Details Section */}
           {graph && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Interactive Network Map Visualizer */}
               <div className="lg:col-span-2 glass-card rounded-2xl p-6 flex flex-col">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-4 font-outfit">Breeth Memory Graph</h3>
-                
-                {/* Visual Graph Area */}
+
                 <div className="relative flex-grow min-h-[300px] bg-zinc-950/40 border border-zinc-900 rounded-xl flex items-center justify-center p-4 overflow-hidden">
-                  
-                  {/* Grid overlay */}
                   <div className="absolute inset-0 bg-[linear-gradient(to_right,#1f2937_1px,transparent_1px),linear-gradient(to_bottom,#1f2937_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-10"></div>
-                  
-                  {/* Nodes diagram */}
-                  <div className="relative w-full max-w-md h-full flex flex-col items-center justify-center py-6">
+
+                  <div className="relative w-full max-w-lg h-full flex flex-col items-center justify-center py-6">
                     {/* Root Node (Candidate) */}
                     <button
-                      onClick={() => setSelectedNode({
-                        peer: graph.entity.name,
-                        isRoot: true,
-                        fact: graph.entity.summary,
-                        intent_meta: {
-                          edge_kind: "Profile Summary",
-                          cognitive_pattern: "Aggregated intent",
-                          why_connected: graph.entity.knot_narrative
-                        }
-                      })}
+                      onClick={() =>
+                        setSelectedNode({
+                          peer: graph.entity.name,
+                          isRoot: true,
+                          direction: 'out',
+                          fact: graph.entity.summary,
+                          intent_meta: {
+                            edge_kind: 'Profile Summary',
+                            cognitive_pattern: 'Aggregated intent',
+                            why_connected: graph.entity.knot_narrative,
+                          },
+                        })
+                      }
                       className={`relative z-10 px-5 py-3 rounded-xl border flex flex-col items-center shadow-lg transition-all duration-300 ${
                         selectedNode?.isRoot
                           ? 'bg-indigo-900/60 border-indigo-500 shadow-indigo-500/10 scale-105'
@@ -441,13 +431,13 @@ export default function Home() {
                         </svg>
                       </div>
                       <span className="text-xs font-semibold tracking-wide text-zinc-200">{graph.entity.name}</span>
-                      <span className="text-[10px] text-zinc-500 mt-0.5 font-mono">Candidate ID</span>
+                      <span className="text-[10px] text-zinc-500 mt-0.5 font-mono">Score: {graph.entity.knot_score}</span>
                     </button>
 
-                    {/* Connection lines using simple relative styles */}
-                    <div className="relative w-full grid grid-cols-5 gap-2 mt-16 z-10">
+                    {/* Neighbor Nodes */}
+                    <div className="relative w-full grid grid-cols-4 gap-2 mt-16 z-10">
                       {graph.neighbors.map((neighbor, index) => {
-                        const isSelected = selectedNode?.peer === neighbor.peer;
+                        const isSelected = !selectedNode?.isRoot && selectedNode?.peer === neighbor.peer;
                         return (
                           <button
                             key={index}
@@ -461,20 +451,19 @@ export default function Home() {
                             <div className="h-5 w-5 rounded-md bg-zinc-800 border border-zinc-700/50 flex items-center justify-center text-zinc-400 mb-1">
                               <span className="text-[10px] font-bold">{index + 1}</span>
                             </div>
-                            <span className="text-[10px] font-medium text-zinc-200 line-clamp-1">{neighbor.peer}</span>
+                            <span className="text-[10px] font-medium text-zinc-200 line-clamp-2">{neighbor.peer}</span>
                             <span className="text-[8px] text-zinc-500 uppercase mt-0.5 tracking-wider">{neighbor.intent_meta.edge_kind}</span>
                           </button>
                         );
                       })}
                     </div>
 
-                    {/* Background SVG paths linking nodes */}
                     <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-20" xmlns="http://www.w3.org/2000/svg">
-                      <line x1="50%" y1="35%" x2="10%" y2="70%" stroke="#6366f1" strokeWidth="2" strokeDasharray="4 4" />
-                      <line x1="50%" y1="35%" x2="30%" y2="70%" stroke="#6366f1" strokeWidth="2" strokeDasharray="4 4" />
-                      <line x1="50%" y1="35%" x2="50%" y2="70%" stroke="#6366f1" strokeWidth="2" strokeDasharray="4 4" />
-                      <line x1="50%" y1="35%" x2="70%" y2="70%" stroke="#6366f1" strokeWidth="2" strokeDasharray="4 4" />
-                      <line x1="50%" y1="35%" x2="90%" y2="70%" stroke="#6366f1" strokeWidth="2" strokeDasharray="4 4" />
+                      {graph.neighbors.map((_, i) => {
+                        const total = graph.neighbors.length;
+                        const xPct = ((i + 0.5) / total) * 100;
+                        return <line key={i} x1="50%" y1="35%" x2={`${xPct}%`} y2="70%" stroke="#6366f1" strokeWidth="2" strokeDasharray="4 4" />;
+                      })}
                     </svg>
                   </div>
                 </div>
@@ -502,14 +491,14 @@ export default function Home() {
                         </div>
 
                         <div>
-                          <p className="text-xs text-zinc-500 uppercase tracking-wide">Extracted Fact / Answer Feedback</p>
+                          <p className="text-xs text-zinc-500 uppercase tracking-wide">Extracted Fact / Observation</p>
                           <p className="text-sm text-zinc-300 mt-1 leading-relaxed bg-zinc-900/30 border border-zinc-850 p-2.5 rounded-lg max-h-32 overflow-y-auto custom-scrollbar">
                             {selectedNode.fact}
                           </p>
                         </div>
 
                         <div>
-                          <p className="text-xs text-zinc-500 uppercase tracking-wide">Status / Metric</p>
+                          <p className="text-xs text-zinc-500 uppercase tracking-wide">Cognitive Pattern</p>
                           <span className="inline-block mt-1.5 px-2.5 py-1 text-xs font-medium text-violet-400 bg-violet-950/30 border border-violet-900/40 rounded-md font-mono">
                             {selectedNode.intent_meta.cognitive_pattern}
                           </span>
@@ -548,7 +537,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="relative z-10 w-full max-w-6xl text-center py-4 border-t border-zinc-900/60 mt-8">
         <p className="text-[10px] text-zinc-600">
-          The Interview Agent v1.0.0 &bull; Powered by Google Gemini 2.0 Flash &amp; Breeth API Distillation Graph.
+          The Interview Agent v2.0.0 &bull; Powered by Breeth API Intent-Aware Memory Distillation Graph.
         </p>
       </footer>
     </main>

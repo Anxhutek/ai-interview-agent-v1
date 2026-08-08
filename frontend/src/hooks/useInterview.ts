@@ -1,191 +1,148 @@
-import { useState } from 'react';
-import { 
-  createSession, 
-  submitAnswer, 
-  getResults, 
-  buildClientGraph,
-  SessionResponse, 
-  QuestionResponse,
-  SessionResultsResponse,
-  CandidateGraph
-} from '../lib/api';
+'use client';
 
-export interface Message {
+import { useState, useCallback } from 'react';
+import {
+  startInterview,
+  sendMessage,
+  getFeedback,
+  buildBreethGraph,
+  type InterviewFeedbackResponse,
+  type BreethGraph,
+} from '@/lib/api';
+
+// ── Chat Bubble Type ──────────────────────────────
+
+export interface ChatBubble {
   id: string;
-  sender: 'agent' | 'candidate';
+  role: 'agent' | 'user';
   text: string;
   timestamp: Date;
 }
 
-export type WizardStep = 'setup' | 'chat' | 'feedback';
+// ── Interview Stage ───────────────────────────────
 
-export function useInterview() {
-  const [step, setStep] = useState<WizardStep>('setup');
-  const [candidateName, setCandidateName] = useState('');
-  const [candidateId, setCandidateId] = useState('');
-  const [curriculum, setCurriculum] = useState('Frontend Engineer');
-  const [sessionId, setSessionId] = useState('');
-  
-  // Quiz specific states
-  const [questions, setQuestions] = useState<QuestionResponse[]>([]);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  
-  const [messages, setMessages] = useState<Message[]>([]);
+export type InterviewStage = 'setup' | 'chat' | 'feedback';
+
+// ── Hook Return ───────────────────────────────────
+
+export interface UseInterviewReturn {
+  stage: InterviewStage;
+  sessionId: string | null;
+  dialogue: ChatBubble[];
+  isTyping: boolean;
+  error: string | null;
+  isFinished: boolean;
+  turnCount: number;
+  candidateName: string;
+  feedback: InterviewFeedbackResponse | null;
+  graph: BreethGraph | null;
+  beginInterview: (candidateId: string, candidateName: string) => Promise<void>;
+  sendAnswer: (message: string) => Promise<void>;
+  requestFeedback: () => Promise<void>;
+}
+
+// ── Hook Implementation ───────────────────────────
+
+export function useInterview(): UseInterviewReturn {
+  const [stage, setStage] = useState<InterviewStage>('setup');
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [dialogue, setDialogue] = useState<ChatBubble[]>([]);
   const [isTyping, setIsTyping] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  // Results structures
-  const [results, setResults] = useState<SessionResultsResponse | null>(null);
-  const [graph, setGraph] = useState<CandidateGraph | null>(null);
+  const [isFinished, setIsFinished] = useState(false);
+  const [turnCount, setTurnCount] = useState(0);
+  const [candidateName, setCandidateName] = useState('');
+  const [feedback, setFeedback] = useState<InterviewFeedbackResponse | null>(null);
+  const [graph, setGraph] = useState<BreethGraph | null>(null);
 
-  const start = async (name: string, id: string, targetCurriculum: string) => {
-    if (!name.trim() || !id.trim()) {
-      setError("Please provide a valid Name and Candidate ID.");
-      return;
-    }
-    setIsLoading(true);
-    setError(null);
-    try {
-      const data = await createSession({
-        role: targetCurriculum,
-        domain: 'Frontend Frameworks & System Design',
-        difficulty: 'medium',
-        num_questions: 5
-      });
-      
-      setCandidateName(name.trim());
-      setCandidateId(id.trim());
-      setCurriculum(targetCurriculum);
-      setSessionId(data.id);
-      setQuestions(data.questions);
-      setCurrentQuestionIndex(0);
-      
-      // Present first question
-      const firstQText = data.questions[0]?.text || "Welcome! Let's get started. Tell me about your general software engineering background.";
-      setMessages([
-        {
-          id: 'msg-start',
-          sender: 'agent',
-          text: firstQText,
-          timestamp: new Date()
-        }
-      ]);
-      setStep('chat');
-    } catch (err: any) {
-      setError(err.message || "Failed to start the interview session.");
-    } finally {
-      setIsLoading(false);
-    }
+  const addBubble = (role: 'agent' | 'user', text: string) => {
+    setDialogue(prev => [
+      ...prev,
+      { id: `${role}-${Date.now()}-${Math.random()}`, role, text, timestamp: new Date() },
+    ]);
   };
 
-  const send = async (text: string) => {
-    if (!text.trim() || isLoading || isTyping) return;
-    
-    // Add candidate message
-    const candidateMsg: Message = {
-      id: `msg-cand-${Date.now()}`,
-      sender: 'candidate',
-      text: text.trim(),
-      timestamp: new Date()
-    };
-    
-    setMessages(prev => [...prev, candidateMsg]);
-    setIsTyping(true);
+  // ── Start Interview ─────────────────────────────
+
+  const beginInterview = useCallback(async (candidateId: string, name: string) => {
     setError(null);
-
+    setCandidateName(name);
+    setIsTyping(true);
     try {
-      const currentQuestion = questions[currentQuestionIndex];
-      if (!currentQuestion) throw new Error("No active question context found");
-
-      // Submit answer to the active question
-      await submitAnswer(sessionId, {
-        question_id: currentQuestion.id,
-        answer_text: text.trim()
-      });
-
-      // Simulation delay for typing indicator
-      if (sessionId.startsWith('mock-')) {
-        await new Promise(resolve => setTimeout(resolve, 800));
-      }
-
-      const nextIndex = currentQuestionIndex + 1;
-      
-      if (nextIndex < questions.length) {
-        // Move to the next question
-        setCurrentQuestionIndex(nextIndex);
-        const nextQ = questions[nextIndex];
-        
-        const agentMsg: Message = {
-          id: `msg-agent-${Date.now()}`,
-          sender: 'agent',
-          text: nextQ.text,
-          timestamp: new Date()
-        };
-        
-        setMessages(prev => [...prev, agentMsg]);
-      } else {
-        // All questions answered, compile results
-        setIsLoading(true);
-        const agentFinishMsg: Message = {
-          id: `msg-finish-${Date.now()}`,
-          sender: 'agent',
-          text: "Thank you! That completes our interview. Generating your feedback dashboard now...",
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, agentFinishMsg]);
-        
-        // Simulation delay
-        if (sessionId.startsWith('mock-')) {
-          await new Promise(resolve => setTimeout(resolve, 1500));
-        }
-
-        const resultsData = await getResults(sessionId);
-        setResults(resultsData);
-        
-        // Build graph representation client-side from results
-        const graphData = buildClientGraph(resultsData, candidateName);
-        setGraph(graphData);
-        
-        setStep('feedback');
-        setIsLoading(false);
-      }
-    } catch (err: any) {
-      setError(err.message || "Failed to submit answer.");
+      const res = await startInterview({ candidateId, candidateName: name });
+      setSessionId(res.sessionId);
+      setStage('chat');
+      addBubble('agent', res.firstQuestion);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to start interview');
     } finally {
       setIsTyping(false);
     }
-  };
+  }, []);
 
-  const restart = () => {
-    setStep('setup');
-    setCandidateName('');
-    setCandidateId('');
-    setSessionId('');
-    setQuestions([]);
-    setCurrentQuestionIndex(0);
-    setMessages([]);
-    setResults(null);
-    setGraph(null);
+  // ── Send Answer (Multi-Turn Conversational) ─────
+
+  const sendAnswer = useCallback(
+    async (message: string) => {
+      if (!sessionId) return;
+      setError(null);
+
+      // Add user bubble immediately
+      addBubble('user', message);
+      setIsTyping(true);
+
+      try {
+        const res = await sendMessage({ sessionId, message });
+        setTurnCount(prev => prev + 1);
+
+        // Simulate brief typing delay for realism
+        await new Promise(r => setTimeout(r, 600));
+        addBubble('agent', res.reply);
+
+        if (res.isFinished) {
+          setIsFinished(true);
+        }
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Failed to send message');
+      } finally {
+        setIsTyping(false);
+      }
+    },
+    [sessionId]
+  );
+
+  // ── Request Feedback ────────────────────────────
+
+  const requestFeedback = useCallback(async () => {
+    if (!sessionId) return;
     setError(null);
-  };
+    setIsTyping(true);
+
+    try {
+      const fb = await getFeedback(sessionId);
+      setFeedback(fb);
+      setGraph(buildBreethGraph(fb, candidateName, turnCount));
+      setStage('feedback');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to fetch feedback');
+    } finally {
+      setIsTyping(false);
+    }
+  }, [sessionId, candidateName, turnCount]);
 
   return {
-    step,
-    candidateName,
-    candidateId,
-    curriculum,
+    stage,
     sessionId,
-    messages,
+    dialogue,
     isTyping,
-    isLoading,
     error,
-    results,
+    isFinished,
+    turnCount,
+    candidateName,
+    feedback,
     graph,
-    turnsCount: currentQuestionIndex,
-    totalQuestions: questions.length,
-    start,
-    send,
-    restart
+    beginInterview,
+    sendAnswer,
+    requestFeedback,
   };
 }
