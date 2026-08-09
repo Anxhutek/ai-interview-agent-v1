@@ -9,5 +9,16 @@
   5. Verified Next.js production build (`npm run build`) with zero errors and deployed to VPS (`http://168.144.189.164:8081`).
 
 - **API Tool Calls**: `view_file`, `write_to_file`, `replace_file_content`, `run_command`
-- **Estimated Token Usage**: ~38,000 tokens
+- **Estimated Token Usage**: ~48,000 tokens
+
+## Summary of Operations — Task 12: Collaborator Onboarding & Multi-User Architecture Setup
+- **Agent Role**: Collaborator & Security Onboarding Officer
+- **Actions Executed**:
+  1. Ran backend database and router verification to explain the JWT session isolation and Breeth memory group structures for multiple users.
+  2. Verified a state-preservation bug in `CurriculumRouter` where `self.turn_scores` is lost between stateless HTTP requests, and framed the fix instructions.
+  3. Sent and verified GitHub collaborator invites for `Apoorv-0747` and `gopalx235` (verified HTTP Status 204/Success).
+  4. Generated custom prompts for Friend 1 (feature updates, branch logic, router fix) and Friend 2 (security cleanup, Hinglish refactoring, sarcastic READMEs) with integrated VPS redeployment credentials.
+- **API Tool Calls**: `run_command`, `write_to_file`, `view_file`
+- **Estimated Token Usage**: ~12,000 tokens
+
 
