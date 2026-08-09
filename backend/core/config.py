@@ -2,21 +2,22 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import List
 
 class Settings(BaseSettings):
+    import os
     APP_NAME: str = 'AI Interview Agent'
     VERSION: str = '0.1.0'
     DEBUG: bool = True
-    DATABASE_URL: str = 'sqlite+aiosqlite:///./interview_agent.db'
-    BREETH_API_KEY: str = 'ck_live_5AA5_ZKx2Sbm18lY3RH9VS-Z034XoWhaT6pTdIcWbB0'
-    BREETH_BASE_URL: str = 'https://api.thebreeth.com'
+    DATABASE_URL: str = os.getenv('DATABASE_URL', 'sqlite+aiosqlite:///./interview_agent.db')
+    BREETH_API_KEY: str = os.getenv('BREETH_API_KEY', '')
+    BREETH_BASE_URL: str = os.getenv('BREETH_BASE_URL', 'https://api.thebreeth.com')
     CORS_ORIGINS: List[str] = ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:8080', '*']
-    JWT_SECRET: str = 'super-secret-jwt-key-change-in-prod-2026'
+    JWT_SECRET: str = os.getenv('JWT_SECRET', 'default-insecure-jwt-key')
     JWT_ALGORITHM: str = 'HS256'
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
     UPLOAD_DIR: str = 'backend/uploads'
 
     # AI Evaluation Architecture Configs
-    GEMINI_API_KEY: str = ''
-    GROQ_API_KEY: str = ''
+    GEMINI_API_KEY: str = os.getenv('GEMINI_API_KEY', '')
+    GROQ_API_KEY: str = os.getenv('GROQ_API_KEY', '')
     AI_PRIMARY_PROVIDER: str = 'gemini'
     AI_PRIMARY_MODEL: str = 'gemini-3.5-flash'
     AI_ENABLE_GROQ: bool = True
@@ -26,7 +27,7 @@ class Settings(BaseSettings):
 
     # Admin 2FA Configs
     TOTP_ISSUER: str = 'AI-Interview-Agent'
-    ENCRYPTION_KEY: str = 'super-secret-encryption-key-for-2fa-secrets'
+    ENCRYPTION_KEY: str = os.getenv('ENCRYPTION_KEY', 'default-encryption-key-for-2fa')
     TOTP_RATE_LIMIT_ATTEMPTS: int = 5
     TOTP_RATE_LIMIT_LOCKOUT_SECONDS: int = 300
 

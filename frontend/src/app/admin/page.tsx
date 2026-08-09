@@ -31,8 +31,8 @@ export default function AdminPage() {
 
   // Admin Login & 2FA Challenge State
   const [loginMode, setLoginMode] = useState<'password' | 'totp'>('password');
-  const [adminEmail, setAdminEmail] = useState('anshuverma162606@gmail.com');
-  const [adminPassword, setAdminPassword] = useState('Anshukabetaapporv');
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [pre2faToken, setPre2faToken] = useState<string | null>(null);
@@ -318,7 +318,7 @@ export default function AdminPage() {
                   type="email"
                   value={adminEmail}
                   onChange={(e) => setAdminEmail(e.target.value)}
-                  placeholder="anshuverma162606@gmail.com"
+                  placeholder="admin@example.com"
                   required
                   className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 focus:border-indigo-500 rounded-lg text-sm text-zinc-200 outline-none transition-all"
                 />
@@ -332,7 +332,7 @@ export default function AdminPage() {
                   type="password"
                   value={adminPassword}
                   onChange={(e) => setAdminPassword(e.target.value)}
-                  placeholder="Anshukabetaapporv"
+                  placeholder="••••••••"
                   required
                   className="w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 focus:border-indigo-500 rounded-lg text-sm text-zinc-200 outline-none transition-all"
                 />
@@ -356,8 +356,8 @@ export default function AdminPage() {
               try {
                 const adminUser = {
                   id: 'admin-01',
-                  email: 'anshuverma162606@gmail.com',
-                  fullName: 'Anshu Verma',
+                  email: 'admin@example.com',
+                  fullName: 'Default Admin',
                   role: 'admin' as const,
                   targetRole: 'Lead Administrator',
                   createdAt: new Date().toISOString()
@@ -681,9 +681,9 @@ export default function AdminPage() {
                             <div className="h-8 w-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center font-bold text-zinc-300 text-xs">
                               {cand.fullName.slice(0, 2).toUpperCase()}
                             </div>
-                            <div>
+                            <div className="truncate">
                               <p className="font-semibold text-zinc-200">{cand.fullName}</p>
-                              <p className="text-[10px] text-zinc-500">{cand.email}</p>
+                              <p className="text-[10px] text-zinc-500 truncate">{cand.email}</p>
                             </div>
                           </td>
                           <td className="py-3.5 text-zinc-300">{cand.targetRole}</td>

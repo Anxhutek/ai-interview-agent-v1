@@ -61,6 +61,7 @@ class InterviewTurn(Base):
     turn_index = Column(Integer, nullable=False)
     question_text = Column(Text, nullable=False)
     answer_text = Column(Text, nullable=True)
+    score = Column(Float, nullable=True) # Per-turn evaluation score persisted for multi-user isolation
     breeth_episode_id = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     
@@ -86,8 +87,8 @@ class AnswerEvaluation(Base):
     turn_id = Column(String, ForeignKey('interview_turns.id'), nullable=True)
     question_id = Column(String, nullable=True)
     answer_id = Column(String, nullable=True)
-    provider = Column(String, nullable=False, default='gemini') # 'gemini', 'groq'
-    model = Column(String, nullable=False)
+    provider = Column(String, nullable=False, default='breeth') # 'breeth', 'gemini', 'groq'
+    model = Column(String, nullable=False, default='curriculum_v1')
     scores = Column(Text, nullable=True) # JSON string of 9 dimensions
     overall_score = Column(Float, default=0.0)
     verdict = Column(String, nullable=True, default='satisfactory') # 'strong', 'satisfactory', 'needs_improvement', 'weak'
@@ -152,16 +153,17 @@ async def create_all_tables():
     # Auto-seed default administrator
     from core.security import hash_password
     from sqlalchemy.future import select
+    import os
     async with SessionLocal() as session:
-        admin_email = "anshuverma162606@gmail.com"
+        admin_email = os.getenv("DEFAULT_ADMIN_EMAIL", "admin@example.com")
         stmt = select(User).where(User.email == admin_email)
         res = await session.execute(stmt)
         user = res.scalar_one_or_none()
         if not user:
             new_admin = User(
                 email=admin_email,
-                password_hash=hash_password("Anshukabetaapporv"),
-                full_name="Anshu Verma",
+                password_hash=hash_password(os.getenv("DEFAULT_ADMIN_PASSWORD", "changeme")),
+                full_name="Default Admin",
                 role="admin",
                 target_role="Lead Administrator"
             )
@@ -169,7 +171,4 @@ async def create_all_tables():
             await session.commit()
         else:
             user.role = "admin"
-            user.password_hash = hash_password("Anshukabetaapporv")
             await session.commit()
-
-
