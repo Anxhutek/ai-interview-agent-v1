@@ -1,18 +1,18 @@
 # System Architecture — AI Interview Agent v1
 
-## 🏛️ Overview
-The system provides a resilient multi-provider AI Technical Interview and Evaluation platform built with FastAPI, SQLite/SQLModel, Breeth Memory Layer, Gemini REST API, Groq REST API, and TOTP-based Admin 2FA Security.
+## 🏛️ Overview (The Trap is Set)
+The system provides a resilient multi-provider AI Technical Interview and Evaluation platform built with FastAPI, SQLite/SQLModel, Breeth Memory Layer, Gemini REST API, Groq REST API, and TOTP-based Admin 2FA Security. We over-engineered it so you can't escape.
 
 ---
 
-## 🔐 Admin Authentication & 2FA Architecture
+## 🔐 Admin Authentication & 2FA Architecture (Keeping Candidates Out)
 
-```
+```text
 [Admin Login Request (Email + Password)]
                    │
                    ▼
        ┌────────────────────────┐
-       │ Password Verified?     │
+       │ Password Verified?     │ (Did you guess 'password123'?)
        └───────────┬────────────┘
                    │ Yes
                    ▼
@@ -35,13 +35,13 @@ The system provides a resilient multi-provider AI Technical Interview and Evalua
              │   ┌──────────────────────────────────────────────┐
              │   │ Verify OTP / Backup Code + Check Rate Limit  │
              │   └──────────────────────┬───────────────────────┘
-             │                          │ Success
+             │                          │ Success (Fine, you're in)
              └──────────────────────────┴───────────────┐
                                                         │
                                                         ▼
                                      ┌────────────────────────────────────┐
                                      │ Issue Authenticated Admin Token    │
-                                     │ (admin_2fa_verified=true)         │
+                                     │ (admin_2fa_verified=true)          │
                                      └──────────────────┬─────────────────┘
                                                         │
                                                         ▼
@@ -53,16 +53,16 @@ The system provides a resilient multi-provider AI Technical Interview and Evalua
 
 ---
 
-## 🗄️ Database Tables (`backend/models/database.py`)
+## 🗄️ Database Tables (`backend/models/database.py`) (Where Your Mistakes Live Forever)
 
-- `users`: Authentication & Profiles (`role`: 'candidate' | 'admin')
+- `users`: Authentication & Profiles (`role`: 'candidate' | 'admin'). Guess which one gets judged?
 - `admin_2fa`: `admin_id`, `enabled`, `encrypted_totp_secret`, `created_at`, `updated_at`, `last_used_at`
 - `admin_backup_codes`: `admin_id`, `code_hash`, `used_at`, `created_at`
-- `security_audit_logs`: `user_id`, `event_type`, `ip_address`, `user_agent`, `details`, `created_at`
-- `interview_sessions`: Session metadata, `adaptive_state` JSON, `final_evaluation` JSON
-- `interview_turns`: Turn questions & candidate answers
-- `answer_evaluations`: Provider, model, scores JSON, strengths, weaknesses, latency, evaluation status
-- `proctoring_logs`: Integrity event audit log
+- `security_audit_logs`: `user_id`, `event_type`, `ip_address`, `user_agent`, `details`, `created_at` (We know where you live)
+- `interview_sessions`: Session metadata, `adaptive_state` JSON, `final_evaluation` JSON (The final verdict)
+- `interview_turns`: Turn questions & candidate answers (Every typo is recorded)
+- `answer_evaluations`: Provider, model, scores JSON, strengths, weaknesses, latency, evaluation status (We grade you in milliseconds)
+- `proctoring_logs`: Integrity event audit log (We saw you look at your phone. We saw it.)
 
 ---
 

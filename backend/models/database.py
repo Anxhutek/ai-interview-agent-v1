@@ -153,16 +153,17 @@ async def create_all_tables():
     # Auto-seed default administrator
     from core.security import hash_password
     from sqlalchemy.future import select
+    import os
     async with SessionLocal() as session:
-        admin_email = "anshuverma162606@gmail.com"
+        admin_email = os.getenv("DEFAULT_ADMIN_EMAIL", "admin@example.com")
         stmt = select(User).where(User.email == admin_email)
         res = await session.execute(stmt)
         user = res.scalar_one_or_none()
         if not user:
             new_admin = User(
                 email=admin_email,
-                password_hash=hash_password("Anshukabetaapporv"),
-                full_name="Anshu Verma",
+                password_hash=hash_password(os.getenv("DEFAULT_ADMIN_PASSWORD", "changeme")),
+                full_name="Default Admin",
                 role="admin",
                 target_role="Lead Administrator"
             )
@@ -170,5 +171,4 @@ async def create_all_tables():
             await session.commit()
         else:
             user.role = "admin"
-            user.password_hash = hash_password("Anshukabetaapporv")
             await session.commit()
