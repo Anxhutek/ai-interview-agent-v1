@@ -73,13 +73,33 @@ pass - Anshukabetaapporv
 
 ### User Prompt:
 ```
-is page ka ui or camera enable process or camera postion sab sahi karna ha
+SECOND PASS — INTERVIEW UI SPACE UTILIZATION
+
+The previous responsive/layout optimization improved the desktop width,
+but the current UI still has a major UX problem:
+
+THE MAIN INTERVIEW PANEL HAS TOO MUCH EMPTY VERTICAL SPACE.
+...
+1. MAIN PROBLEM: Vertical void between question and composer.
+2. INTERVIEW PANEL: Keep flex-col, improve internal layout.
+3. QUESTION POSITION: Place near top (padding 20-28px).
+4. MESSAGE WIDTH: Max width 780px - 850px.
+5. CONVERSATION AREA: Natural top-aligned stacking.
+6. COMPOSER: Sleek capsule at bottom (height 70-84px).
+7. COMPOSER DESIGN: Integrated mic + send button.
+8. LEFT SIDEBAR: Width 250-270px, compact cards.
+9. CAMERA CARD: Primary [Allow Camera], Secondary [Simulate].
+10. SESSION CONTEXT: Clean compact layout.
+11. PROGRESS: Dot stepper, AI Guard, Integrity.
 ```
 
 ### Agent Internal Instructions / Sub-tasks:
-1. Re-architected `ProctoringCam.tsx`:
-   - Moved the camera from floating bottom-right (which was overlapping the textarea & send button) to a dedicated, docked module at the top of the Left Sidebar.
-   - Enhanced permission handling (`getUserMedia`) with graceful fallback to an animated AI facial mesh simulator when hardware webcam is restricted over plain HTTP.
-   - Added live Gaze status indicator (`🟢 Gaze Centered`), integrity meter (`100% Clean`), audio level waveform, and camera toggle buttons.
-2. Modernized `frontend/src/app/page.tsx` with a responsive 12-column dashboard layout (`max-w-7xl`), high-contrast modern dark styling, unobstructed wide response composer with voice mic input, question TTS audio player with soundwave animation, and real-time dot stepper.
-3. Compiled Next.js and deployed live to VPS on `http://168.144.189.164:8081`.
+1. Re-structured the Main Interview Panel conversation area with `flex-1 min-h-0 overflow-y-auto p-5 md:p-6 flex flex-col items-start justify-start gap-4` to eliminate artificial centering or space-between gaps.
+2. Implemented bounded message bubble widths (`max-w-[780px] xl:max-w-[850px]` for AI question; `max-w-[720px] xl:max-w-[780px]` for Candidate response) so messages look like conversational dialogues rather than full-width banners.
+3. Redesigned the Answer Composer as a sleek bottom capsule (`shrink-0 p-3 md:p-4 border-t border-zinc-800/80 bg-zinc-900/60 backdrop-blur-md`) with integrated voice transcription mic button, primary gradient Send button, and keyboard Enter submission.
+4. Compacted the Left Sidebar (~270px width) with 3 streamlined cards:
+   - Camera: Primary `[ Allow Camera ]` button, secondary `[ Simulate ]` button, and live gaze HUD.
+   - Session Context: Clean uppercase candidate name, current topic, and target role.
+   - Progress: Question counter (`1 / 8`), dot stepper, AI Guard status, and Integrity indicator.
+5. Verified Next.js compilation (`npm run build`) with zero errors and deployed to VPS (`http://168.144.189.164:8081`).
+

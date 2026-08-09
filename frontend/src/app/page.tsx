@@ -353,12 +353,12 @@ export default function Home() {
         </section>
       )}
 
-      {/* STAGE 2: ACTIVE CONVERSATIONAL CHAT - VIEWPORT FITTED */}
+      {/* STAGE 2: ACTIVE CONVERSATIONAL CHAT - VIEWPORT FITTED & SPACE OPTIMIZED */}
       {stage === 'chat' && (
-        <section className="flex-1 min-h-0 w-full max-w-[1500px] p-2.5 md:p-3.5 grid grid-cols-1 lg:grid-cols-[270px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)] gap-3 overflow-hidden animate-slide-up">
+        <section className="flex-1 min-h-0 w-full max-w-[1500px] p-2.5 md:p-3.5 grid grid-cols-1 lg:grid-cols-[270px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)] gap-3.5 overflow-hidden animate-slide-up">
           {/* Left Sidebar (Proctoring Feed, Context & Progress) */}
-          <div className="flex flex-col gap-2 h-full min-h-0 overflow-y-auto lg:overflow-visible shrink-0">
-            {/* Live Proctoring Webcam - Compact Height ~170px */}
+          <div className="flex flex-col gap-2.5 h-full min-h-0 overflow-y-auto lg:overflow-visible shrink-0">
+            {/* Live Proctoring Webcam - Compact Docked Card */}
             <ProctoringCam
               sessionId={sessionId || 'session'}
               isActive={stage === 'chat'}
@@ -366,43 +366,41 @@ export default function Home() {
               onWarningTriggered={(count) => setProctoringWarnings(count)}
             />
 
-            {/* Session Context Card - Compact Height ~115px */}
-            <div className="glass-card rounded-xl p-2.5 border border-zinc-800 bg-zinc-950/80 shadow-sm flex flex-col gap-1 shrink-0">
-              <div className="flex items-center justify-between">
-                <h3 className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 font-outfit">Session Context</h3>
-                <span className="text-[9px] px-1.5 py-0.2 rounded bg-indigo-950/80 border border-indigo-900/60 text-indigo-400 font-mono">
+            {/* Session Context Card */}
+            <div className="glass-card rounded-xl p-3 border border-zinc-800 bg-zinc-950/80 shadow-sm flex flex-col gap-2 shrink-0">
+              <div className="flex items-center justify-between pb-1.5 border-b border-zinc-850">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 font-outfit">SESSION</span>
+                <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-indigo-950/80 border border-indigo-900/60 text-indigo-400">
                   Live
                 </span>
               </div>
               
-              <div className="mt-0.5">
-                <p className="text-[10px] text-zinc-500">Candidate</p>
-                <p className="text-xs font-semibold text-zinc-100 truncate">{candidateName}</p>
+              <div>
+                <span className="text-[10px] text-zinc-500 uppercase tracking-wider block font-mono">Candidate</span>
+                <p className="text-xs font-semibold text-zinc-100 uppercase tracking-tight truncate">{candidateName || 'ANSHUVERMA162606'}</p>
               </div>
 
               <div>
-                <p className="text-[10px] text-zinc-500">Topic</p>
-                <span className="inline-block mt-0.5 px-2 py-0.5 text-[11px] font-medium text-indigo-400 bg-indigo-950/50 border border-indigo-900/60 rounded font-outfit truncate max-w-full">
-                  {currentTopic}
-                </span>
+                <span className="text-[10px] text-zinc-500 uppercase tracking-wider block font-mono">Topic</span>
+                <p className="text-xs font-medium text-indigo-300 truncate">{currentTopic || 'System Architecture'}</p>
               </div>
 
-              <div className="pt-1.5 mt-0.5 border-t border-zinc-850 flex items-center justify-between text-[10px]">
-                <span className="text-zinc-500">Target Role</span>
-                <span className="font-medium text-zinc-300 truncate max-w-[130px]">{user?.targetRole || 'Backend Engineer'}</span>
+              <div>
+                <span className="text-[10px] text-zinc-500 uppercase tracking-wider block font-mono">Role</span>
+                <p className="text-xs font-medium text-zinc-300 truncate">{user?.targetRole || 'Backend Engineer'}</p>
               </div>
             </div>
 
-            {/* Live Progress & Adaptive Status Card - Compact Height ~110px */}
-            <div className="glass-card rounded-xl p-2.5 border border-zinc-800 bg-zinc-950/80 shadow-sm flex flex-col gap-1 shrink-0">
-              <div className="flex justify-between items-center">
-                <h3 className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 font-outfit">Progress</h3>
-                <span className="text-[10px] font-mono font-semibold text-indigo-400 bg-indigo-950/60 px-1.5 py-0.2 rounded border border-indigo-900/40">
-                  Q{Math.min(questionIndex, totalQuestions)} of {totalQuestions}
+            {/* Live Progress Card */}
+            <div className="glass-card rounded-xl p-3 border border-zinc-800 bg-zinc-950/80 shadow-sm flex flex-col gap-2 shrink-0">
+              <div className="flex justify-between items-center pb-1.5 border-b border-zinc-850">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 font-outfit">PROGRESS</span>
+                <span className="text-[10px] font-mono font-semibold text-indigo-400">
+                  {Math.min(questionIndex, totalQuestions)} / {totalQuestions}
                 </span>
               </div>
 
-              {/* Dot-stepper Progress Indicator */}
+              {/* Progress Dots */}
               <div className="flex items-center justify-between py-1 px-0.5">
                 {Array.from({ length: totalQuestions }).map((_, idx) => {
                   const isPassed = idx < questionIndex - 1;
@@ -415,14 +413,14 @@ export default function Home() {
                             ? 'bg-emerald-500 shadow-[0_0_6px_#10b981]'
                             : isCurrent
                             ? 'bg-indigo-500 ring-2 ring-indigo-500/30 shadow-[0_0_8px_#6366f1] animate-pulse'
-                            : 'bg-zinc-850 border border-zinc-700'
+                            : 'bg-zinc-800 border border-zinc-700'
                         }`}
                         title={`Question ${idx + 1}`}
                       />
                       {idx < totalQuestions - 1 && (
                         <div
                           className={`h-0.5 flex-1 mx-0.5 transition-colors duration-300 ${
-                            idx < questionIndex - 1 ? 'bg-emerald-500' : 'bg-zinc-850'
+                            idx < questionIndex - 1 ? 'bg-emerald-500' : 'bg-zinc-800'
                           }`}
                         />
                       )}
@@ -431,24 +429,22 @@ export default function Home() {
                 })}
               </div>
 
-              {/* Subtle Evaluation Status Badge */}
-              <div className="pt-1.5 mt-0.5 border-t border-zinc-850 flex items-center justify-between text-[10px]">
+              <div className="pt-1.5 border-t border-zinc-850 flex items-center justify-between text-[11px]">
                 <span className="text-zinc-400">AI Guard</span>
                 {evaluationState === 'processing' ? (
                   <span className="text-violet-400 font-medium flex items-center space-x-1 animate-pulse">
-                    <span className="h-1 w-1 rounded-full bg-violet-400" />
-                    <span>Evaluating ●</span>
+                    <span className="h-1.5 w-1.5 rounded-full bg-violet-400" />
+                    <span>Evaluating</span>
                   </span>
                 ) : (
                   <span className="text-emerald-400 font-medium flex items-center space-x-1">
-                    <span className="h-1 w-1 rounded-full bg-emerald-400" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
                     <span>Ready</span>
                   </span>
                 )}
               </div>
 
-              {/* Proctoring Warning Badge */}
-              <div className="pt-1 border-t border-zinc-850 flex justify-between items-center text-[10px]">
+              <div className="flex justify-between items-center text-[11px]">
                 <span className="text-zinc-400">Integrity</span>
                 {proctoringWarnings > 0 ? (
                   <span className="text-red-400 font-bold font-mono">
@@ -475,13 +471,13 @@ export default function Home() {
           </div>
 
           {/* Right Main Stage (Chat & Response Console) */}
-          <div className="flex flex-col h-full min-h-0 glass-card rounded-xl border border-zinc-800 bg-zinc-950/60 overflow-hidden shadow-xl">
+          <div className="flex flex-col h-full min-h-0 glass-card rounded-2xl border border-zinc-800 bg-zinc-950/60 overflow-hidden shadow-2xl">
             {/* Chat Header */}
-            <div className="px-4 py-2 border-b border-zinc-800/80 bg-zinc-900/60 backdrop-blur-md flex items-center justify-between shrink-0">
-              <div className="flex items-center space-x-2">
-                <div className={`h-2 w-2 rounded-full ${isFinished ? 'bg-emerald-500' : 'bg-indigo-500 animate-ping'}`} />
-                <h3 className="font-semibold text-xs text-zinc-100 font-outfit">
-                  {isFinished ? 'Interview Session Complete' : 'Active Technical Interview Dialogue'}
+            <div className="px-5 py-3 border-b border-zinc-800/80 bg-zinc-900/60 backdrop-blur-md flex items-center justify-between shrink-0">
+              <div className="flex items-center space-x-2.5">
+                <span className={`h-2.5 w-2.5 rounded-full ${isFinished ? 'bg-emerald-500' : 'bg-indigo-500 animate-pulse'}`} />
+                <h3 className="font-semibold text-xs md:text-sm text-zinc-100 font-outfit">
+                  {isFinished ? 'Interview Session Complete' : 'AI Technical Interviewer'}
                 </h3>
               </div>
 
@@ -503,16 +499,16 @@ export default function Home() {
               )}
             </div>
 
-            {/* Chat Dialogue Stream */}
-            <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3.5 custom-scrollbar bg-zinc-950/40">
+            {/* Conversation Area — Natural Top-Aligned Stacking with bounded max-width */}
+            <div className="flex-1 min-h-0 overflow-y-auto p-5 md:p-6 flex flex-col items-start justify-start gap-4 custom-scrollbar bg-zinc-950/30">
               {dialogue.map((msg) => (
                 <div
                   key={msg.id}
-                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
+                  className={`w-full flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
                 >
-                  <div className="flex items-start space-x-2.5 max-w-[92%] md:max-w-[85%]">
+                  <div className={`flex items-start space-x-3 ${msg.role === 'user' ? 'max-w-[720px] xl:max-w-[780px]' : 'max-w-[780px] xl:max-w-[850px]'}`}>
                     {msg.role === 'agent' && (
-                      <div className="h-7 w-7 rounded-lg bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center shrink-0 mt-0.5 shadow-md shadow-indigo-500/20 text-white">
+                      <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center shrink-0 mt-0.5 shadow-md shadow-indigo-500/20 text-white">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                         </svg>
@@ -521,32 +517,32 @@ export default function Home() {
                     <div className="flex flex-col">
                       {msg.role === 'agent' && (
                         <div className="flex items-center space-x-2 mb-1 px-0.5">
-                          <span className="text-[11px] font-semibold text-zinc-200 font-outfit">
+                          <span className="text-[11px] font-semibold text-zinc-300 font-outfit">
                             AI Technical Interviewer
                           </span>
-                          <span className="text-[9px] text-zinc-500">&bull; Evaluation Engine</span>
+                          <span className="text-[9px] text-zinc-500">&bull; Question {Math.min(questionIndex, totalQuestions)}</span>
                           <button
                             type="button"
                             onClick={() => playQuestionAudio(msg.text)}
-                            className="ml-1.5 text-[10px] text-indigo-400 hover:text-indigo-300 flex items-center space-x-1 px-1.5 py-0.5 rounded bg-indigo-950/60 border border-indigo-900/60 transition-all hover:bg-indigo-900/40"
+                            className="ml-2 text-[10px] text-indigo-400 hover:text-indigo-300 flex items-center space-x-1 px-2 py-0.5 rounded bg-indigo-950/60 border border-indigo-900/60 transition-all hover:bg-indigo-900/40"
                             title="Play Question Audio"
                           >
-                            <span>{isPlayingAudio ? '⏹ Stop Audio' : '🔊 Listen Question'}</span>
+                            <span>{isPlayingAudio ? '⏹ Stop Audio' : '🔊 Listen'}</span>
                           </button>
                         </div>
                       )}
 
                       <div
-                        className={`rounded-xl px-3.5 py-2.5 text-xs md:text-sm ${
+                        className={`rounded-2xl p-4 md:p-4.5 text-sm ${
                           msg.role === 'user'
-                            ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-tr-none shadow-md shadow-indigo-500/10'
-                            : 'bg-zinc-900/90 border border-zinc-800 text-zinc-100 rounded-tl-none font-normal shadow-sm'
+                            ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-tr-none shadow-lg shadow-indigo-500/10'
+                            : 'bg-zinc-900/90 border border-zinc-800 text-zinc-100 rounded-tl-none font-normal shadow-md leading-relaxed'
                         }`}
                       >
-                        <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                        <p className="whitespace-pre-wrap leading-relaxed">{msg.text}</p>
                       </div>
 
-                      <span className="text-[9px] text-zinc-500 mt-0.5 self-end px-1 font-mono">
+                      <span className="text-[9px] text-zinc-500 mt-1 self-end px-1 font-mono">
                         {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
@@ -555,17 +551,17 @@ export default function Home() {
               ))}
 
               {isTyping && (
-                <div className="flex justify-start animate-fade-in">
-                  <div className="flex items-start space-x-2.5">
-                    <div className="h-7 w-7 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0 mt-0.5">
+                <div className="w-full flex justify-start animate-fade-in">
+                  <div className="flex items-start space-x-3 max-w-[780px]">
+                    <div className="h-8 w-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0 mt-0.5">
                       <svg className="w-4 h-4 text-indigo-400 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                       </svg>
                     </div>
-                    <div className="bg-zinc-900 border border-zinc-800 rounded-xl rounded-tl-none px-3.5 py-2.5 flex space-x-1.5 items-center">
-                      <span className="h-1.5 w-1.5 bg-indigo-400 rounded-full typing-dot" />
-                      <span className="h-1.5 w-1.5 bg-indigo-400 rounded-full typing-dot" />
-                      <span className="h-1.5 w-1.5 bg-indigo-400 rounded-full typing-dot" />
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl rounded-tl-none px-4 py-3 flex space-x-1.5 items-center shadow-md">
+                      <span className="h-2 w-2 bg-indigo-400 rounded-full typing-dot" />
+                      <span className="h-2 w-2 bg-indigo-400 rounded-full typing-dot" />
+                      <span className="h-2 w-2 bg-indigo-400 rounded-full typing-dot" />
                     </div>
                   </div>
                 </div>
@@ -575,20 +571,23 @@ export default function Home() {
 
             {/* Error banner with retry */}
             {error && (
-              <div className="px-4 py-1.5 bg-red-950/80 border-t border-red-800/50 flex items-center justify-between text-xs text-red-300 shrink-0">
+              <div className="px-5 py-2 bg-red-950/80 border-t border-red-800/50 flex items-center justify-between text-xs text-red-300 shrink-0">
                 <span>{error}</span>
                 <button
                   onClick={() => handleSend()}
-                  className="px-2 py-0.5 text-[10px] font-semibold text-white bg-red-800 hover:bg-red-700 rounded transition-all"
+                  className="px-2.5 py-1 text-[10px] font-semibold text-white bg-red-800 hover:bg-red-700 rounded transition-all"
                 >
                   Retry Submission
                 </button>
               </div>
             )}
 
-            {/* Compact Unobstructed Answer Composer */}
-            <form onSubmit={handleSend} className="shrink-0 p-2.5 md:p-3 border-t border-zinc-800/80 bg-zinc-900/60 backdrop-blur-md flex items-end gap-2">
-              <div className="flex-1 min-w-0 relative">
+            {/* Sleek Bottom Composer Capsule */}
+            <form
+              onSubmit={handleSend}
+              className="shrink-0 p-3 md:p-4 border-t border-zinc-800/80 bg-zinc-900/60 backdrop-blur-md"
+            >
+              <div className="relative flex items-center bg-zinc-950/90 border border-zinc-800 focus-within:border-indigo-500/80 focus-within:ring-1 focus-within:ring-indigo-500/50 rounded-2xl p-2 transition-all shadow-inner">
                 <textarea
                   value={draftText}
                   onChange={(e) => setDraftText(e.target.value)}
@@ -600,33 +599,38 @@ export default function Home() {
                   }
                   disabled={isTyping || isFinished || submissionState === 'saving'}
                   rows={2}
-                  className="w-full bg-zinc-950 border border-zinc-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none rounded-lg py-2 pl-3 pr-9 text-xs text-zinc-200 placeholder-zinc-500 resize-none custom-scrollbar transition-all disabled:opacity-50 shadow-inner h-[54px]"
+                  className="flex-1 bg-transparent outline-none py-1.5 pl-3 pr-2 text-xs md:text-sm text-zinc-100 placeholder-zinc-500 resize-none custom-scrollbar disabled:opacity-50 min-h-[50px] max-h-[100px]"
                 />
 
-                {/* Voice Input icon button */}
-                <button
-                  type="button"
-                  aria-label="Voice input"
-                  onClick={() => alert("Voice transcription ready. Speak your answer or type directly.")}
-                  className="absolute right-2.5 top-2.5 text-zinc-400 hover:text-indigo-400 transition-colors p-0.5"
-                  title="Voice Input"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                  </svg>
-                </button>
-              </div>
+                <div className="flex items-center space-x-1.5 self-end shrink-0 pl-2">
+                  {/* Voice Input Mic Button */}
+                  <button
+                    type="button"
+                    aria-label="Voice input"
+                    onClick={() => alert("Voice transcription active. Speak into your microphone.")}
+                    disabled={isTyping || isFinished || submissionState === 'saving'}
+                    className="h-9 w-9 rounded-xl text-zinc-400 hover:text-indigo-400 hover:bg-zinc-850/80 transition-all flex items-center justify-center disabled:opacity-30 active:scale-95"
+                    title="Voice Input"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                    </svg>
+                  </button>
 
-              <button
-                type="submit"
-                disabled={!draftText.trim() || isTyping || isFinished || submissionState === 'saving'}
-                aria-label="Submit answer"
-                className="h-[54px] w-12 shrink-0 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white rounded-lg transition-all flex items-center justify-center shadow-md shadow-indigo-500/20 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
-              >
-                <svg className="w-4 h-4 transform rotate-90 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                </svg>
-              </button>
+                  {/* Send Button — Clear Primary Action */}
+                  <button
+                    type="submit"
+                    disabled={!draftText.trim() || isTyping || isFinished || submissionState === 'saving'}
+                    aria-label="Submit answer"
+                    className="h-9 px-3.5 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-medium text-xs rounded-xl transition-all flex items-center space-x-1.5 shadow-md shadow-indigo-500/20 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
+                  >
+                    <span>Send</span>
+                    <svg className="w-3.5 h-3.5 transform rotate-90 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
             </form>
           </div>
         </section>

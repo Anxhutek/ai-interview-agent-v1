@@ -267,16 +267,17 @@ export const ProctoringCam: React.FC<ProctoringCamProps> = ({
         {/* Module Header with Live Status */}
         <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-zinc-850">
           <div className="flex items-center space-x-1.5">
-            <span className="flex items-center space-x-1.5 text-[10px] font-semibold tracking-wider uppercase">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 font-outfit">CAMERA</span>
+            <span className="flex items-center space-x-1 text-[10px] font-semibold tracking-wide uppercase ml-1">
               {hasPermission ? (
                 <>
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-emerald-400">Proctor Live</span>
+                  <span className="text-emerald-400">Live</span>
                 </>
               ) : (
                 <>
                   <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-                  <span className="text-zinc-400">Cam Standby</span>
+                  <span className="text-zinc-400">Standby</span>
                 </>
               )}
             </span>
@@ -294,7 +295,7 @@ export const ProctoringCam: React.FC<ProctoringCamProps> = ({
           </div>
         </div>
 
-        {/* Video / Canvas Stream Viewport - Compact Height ~105px */}
+        {/* Video / Canvas Stream Viewport */}
         <div className="relative w-full h-28 rounded-lg bg-zinc-950 overflow-hidden border border-zinc-850 flex items-center justify-center shadow-inner">
           {/* Hardware Webcam Video */}
           {hasPermission && !isSimulated && (
@@ -321,20 +322,22 @@ export const ProctoringCam: React.FC<ProctoringCamProps> = ({
 
           {/* Camera Permission Request / Fallback UI */}
           {hasPermission === false && (
-            <div className="p-2 text-center text-xs text-zinc-400 space-y-1.5 flex flex-col items-center justify-center">
-              <p className="text-[10px] text-zinc-300 font-medium">
+            <div className="p-2 text-center text-xs text-zinc-400 space-y-2 flex flex-col items-center justify-center">
+              <p className="text-[10px] text-zinc-400 font-medium leading-snug">
                 Camera access required
               </p>
               <div className="flex items-center space-x-1.5">
+                {/* Primary Action */}
                 <button
                   onClick={initCamera}
-                  className="px-2 py-1 text-[10px] font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded shadow transition-all active:scale-95"
+                  className="px-2.5 py-1 text-[10px] font-semibold text-white bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 rounded-md shadow-sm transition-all active:scale-95"
                 >
-                  Allow Cam
+                  Allow Camera
                 </button>
+                {/* Secondary Action */}
                 <button
                   onClick={startSimulatedFeed}
-                  className="px-2 py-1 text-[10px] font-medium text-zinc-300 bg-zinc-900 hover:bg-zinc-800 border border-zinc-750 rounded transition-all"
+                  className="px-2 py-1 text-[10px] font-medium text-zinc-300 bg-zinc-900 hover:bg-zinc-800 border border-zinc-750 rounded-md transition-all"
                 >
                   Simulate
                 </button>
@@ -380,7 +383,7 @@ export const ProctoringCam: React.FC<ProctoringCamProps> = ({
           )}
         </div>
 
-        {/* Candidate Identifier footer */}
+        {/* Candidate Identifier & Control Footer */}
         <div className="mt-1.5 pt-1.5 border-t border-zinc-850 flex items-center justify-between text-[10px] text-zinc-400 px-0.5">
           <div className="flex items-center space-x-1 truncate max-w-[130px]">
             <span className="h-1 w-1 rounded-full bg-indigo-400 shrink-0" />
