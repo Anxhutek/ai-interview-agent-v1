@@ -75,3 +75,15 @@ Fix required: Implement a full-bleed, screen-height, screen-width flex layout. I
 3. Created a dedicated Right Intelligence & Scratchpad Panel (`hidden lg:flex w-[290px] xl:w-[310px] 2xl:w-[330px]`) with live Question Metadata, Candidate Interactive Scratchpad (with character count & clear button), and AI Guard Biometric Telemetry HUD, perfectly utilizing 1920x1080 and ultrawide screens.
 4. Created a fixed, anchored thin bottom status bar (`h-7 shrink-0`) with live session status, protocol badge, and latency metrics, completely eliminating the 200px bottom void.
 5. Tested Next.js production compilation (`npm run build`) and deployed to the staging server.
+
+### User Prompt:
+`	ext
+I have 3 files for my AI Interview Agent project: technical-spec.md, candidates.json, curriculum.json. Implement the working AI Interview Agent without unnecessarily changing the existing project architecture.
+`
+
+### Agent Internal Instructions / Sub-tasks:
+1. Generated backend/data/candidates.json, backend/data/curriculum.json, and backend/docs/technical-spec.md mock database files.
+2. Implemented an isolated unified router backend/routers/unified_interview.py.
+3. Engineered a dynamic system prompt to evaluate candidate mission history vs curriculum.
+4. Handled memory conversational state in backend.
+5. Built automated integration tests via scratch/test_unified_api.py.

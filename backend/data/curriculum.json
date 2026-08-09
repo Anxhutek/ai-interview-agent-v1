@@ -1,0 +1,177 @@
+{
+  "modules": [
+    {
+      "id": 1,
+      "name": "Environment & Tooling",
+      "days": [
+        {
+          "day": 1,
+          "topic": "Python and VS Code",
+          "type": "setup",
+          "tools": [
+            "Python",
+            "VS Code"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Data Foundations",
+      "days": [
+        {
+          "day": 2,
+          "topic": "Data processing",
+          "type": "coding",
+          "tools": [
+            "Pandas"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Embeddings & Vector Search",
+      "days": [
+        {
+          "day": 3,
+          "topic": "Embeddings",
+          "type": "concept",
+          "tools": [
+            "OpenAI"
+          ]
+        },
+        {
+          "day": 4,
+          "topic": "Vector databases & RAG",
+          "type": "coding",
+          "tools": [
+            "Pinecone",
+            "Chroma"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "LLM Core, Prompting & Fine-Tuning",
+      "days": [
+        {
+          "day": 5,
+          "topic": "Prompt engineering & Function calling",
+          "type": "concept",
+          "tools": [
+            "OpenAI"
+          ]
+        },
+        {
+          "day": 6,
+          "topic": "Fine-tuning",
+          "type": "coding",
+          "tools": [
+            "HuggingFace"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Chatbot Application Build",
+      "days": [
+        {
+          "day": 7,
+          "topic": "React and FastAPI",
+          "type": "coding",
+          "tools": [
+            "React",
+            "FastAPI"
+          ]
+        },
+        {
+          "day": 8,
+          "topic": "Streaming & Conversation memory",
+          "type": "coding",
+          "tools": [
+            "FastAPI",
+            "Redis"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Agentic AI & MCP",
+      "days": [
+        {
+          "day": 9,
+          "topic": "LangChain agents & Multi-agent systems",
+          "type": "coding",
+          "tools": [
+            "LangChain"
+          ]
+        },
+        {
+          "day": 10,
+          "topic": "MCP",
+          "type": "concept",
+          "tools": [
+            "MCP"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Evaluation, Security & Deployment",
+      "days": [
+        {
+          "day": 11,
+          "topic": "Evaluation & Security",
+          "type": "concept",
+          "tools": [
+            "Promptfoo"
+          ]
+        },
+        {
+          "day": 12,
+          "topic": "Docker & Kubernetes",
+          "type": "deployment",
+          "tools": [
+            "Docker",
+            "K8s"
+          ]
+        },
+        {
+          "day": 13,
+          "topic": "Monitoring & Performance optimization",
+          "type": "deployment",
+          "tools": [
+            "Prometheus"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Production & Capstone",
+      "days": [
+        {
+          "day": 14,
+          "topic": "Production readiness",
+          "type": "deployment",
+          "tools": [
+            "CI/CD"
+          ]
+        },
+        {
+          "day": 15,
+          "topic": "Final capstone",
+          "type": "project",
+          "tools": [
+            "All"
+          ]
+        }
+      ]
+    }
+  ]
+}

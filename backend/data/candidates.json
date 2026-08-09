@@ -1,0 +1,462 @@
+[
+  {
+    "id": "cand-001",
+    "name": "Candidate 1",
+    "role": "AI Engineer",
+    "years_of_experience": 2,
+    "education": "B.S. Computer Science",
+    "status": "graduated",
+    "mission_history": [
+      {
+        "mission": "Python Basics",
+        "status": "passed"
+      },
+      {
+        "mission": "LangChain Agents",
+        "status": "failed"
+      }
+    ],
+    "stats": {
+      "commit_days": 41,
+      "missions_completed": 24,
+      "first_try_completions": 7
+    }
+  },
+  {
+    "id": "cand-002",
+    "name": "Candidate 2",
+    "role": "AI Engineer",
+    "years_of_experience": 2,
+    "education": "B.S. Computer Science",
+    "status": "active",
+    "mission_history": [
+      {
+        "mission": "Python Basics",
+        "status": "passed"
+      },
+      {
+        "mission": "LangChain Agents",
+        "status": "failed"
+      }
+    ],
+    "stats": {
+      "commit_days": 56,
+      "missions_completed": 7,
+      "first_try_completions": 17
+    }
+  },
+  {
+    "id": "cand-003",
+    "name": "Candidate 3",
+    "role": "AI Engineer",
+    "years_of_experience": 1,
+    "education": "B.S. Computer Science",
+    "status": "graduated",
+    "mission_history": [
+      {
+        "mission": "Python Basics",
+        "status": "passed"
+      },
+      {
+        "mission": "LangChain Agents",
+        "status": "passed"
+      }
+    ],
+    "stats": {
+      "commit_days": 84,
+      "missions_completed": 7,
+      "first_try_completions": 18
+    }
+  },
+  {
+    "id": "cand-004",
+    "name": "Candidate 4",
+    "role": "AI Engineer",
+    "years_of_experience": 5,
+    "education": "B.S. Computer Science",
+    "status": "active",
+    "mission_history": [
+      {
+        "mission": "Python Basics",
+        "status": "passed"
+      },
+      {
+        "mission": "LangChain Agents",
+        "status": "failed"
+      }
+    ],
+    "stats": {
+      "commit_days": 29,
+      "missions_completed": 15,
+      "first_try_completions": 16
+    }
+  },
+  {
+    "id": "cand-005",
+    "name": "Candidate 5",
+    "role": "AI Engineer",
+    "years_of_experience": 4,
+    "education": "B.S. Computer Science",
+    "status": "active",
+    "mission_history": [
+      {
+        "mission": "Python Basics",
+        "status": "passed"
+      },
+      {
+        "mission": "LangChain Agents",
+        "status": "passed"
+      }
+    ],
+    "stats": {
+      "commit_days": 24,
+      "missions_completed": 23,
+      "first_try_completions": 15
+    }
+  },
+  {
+    "id": "cand-006",
+    "name": "Candidate 6",
+    "role": "AI Engineer",
+    "years_of_experience": 7,
+    "education": "B.S. Computer Science",
+    "status": "active",
+    "mission_history": [
+      {
+        "mission": "Python Basics",
+        "status": "passed"
+      },
+      {
+        "mission": "LangChain Agents",
+        "status": "failed"
+      }
+    ],
+    "stats": {
+      "commit_days": 69,
+      "missions_completed": 13,
+      "first_try_completions": 11
+    }
+  },
+  {
+    "id": "cand-007",
+    "name": "Candidate 7",
+    "role": "AI Engineer",
+    "years_of_experience": 7,
+    "education": "B.S. Computer Science",
+    "status": "dropped",
+    "mission_history": [
+      {
+        "mission": "Python Basics",
+        "status": "passed"
+      },
+      {
+        "mission": "LangChain Agents",
+        "status": "skipped"
+      }
+    ],
+    "stats": {
+      "commit_days": 90,
+      "missions_completed": 31,
+      "first_try_completions": 15
+    }
+  },
+  {
+    "id": "cand-008",
+    "name": "Candidate 8",
+    "role": "AI Engineer",
+    "years_of_experience": 9,
+    "education": "B.S. Computer Science",
+    "status": "graduated",
+    "mission_history": [
+      {
+        "mission": "Python Basics",
+        "status": "passed"
+      },
+      {
+        "mission": "LangChain Agents",
+        "status": "passed"
+      }
+    ],
+    "stats": {
+      "commit_days": 30,
+      "missions_completed": 26,
+      "first_try_completions": 4
+    }
+  },
+  {
+    "id": "cand-009",
+    "name": "Candidate 9",
+    "role": "AI Engineer",
+    "years_of_experience": 6,
+    "education": "B.S. Computer Science",
+    "status": "graduated",
+    "mission_history": [
+      {
+        "mission": "Python Basics",
+        "status": "passed"
+      },
+      {
+        "mission": "LangChain Agents",
+        "status": "skipped"
+      }
+    ],
+    "stats": {
+      "commit_days": 92,
+      "missions_completed": 10,
+      "first_try_completions": 7
+    }
+  },
+  {
+    "id": "cand-010",
+    "name": "Candidate 10",
+    "role": "AI Engineer",
+    "years_of_experience": 4,
+    "education": "B.S. Computer Science",
+    "status": "active",
+    "mission_history": [
+      {
+        "mission": "Python Basics",
+        "status": "passed"
+      },
+      {
+        "mission": "LangChain Agents",
+        "status": "failed"
+      }
+    ],
+    "stats": {
+      "commit_days": 48,
+      "missions_completed": 20,
+      "first_try_completions": 18
+    }
+  },
+  {
+    "id": "cand-011",
+    "name": "Candidate 11",
+    "role": "AI Engineer",
+    "years_of_experience": 8,
+    "education": "B.S. Computer Science",
+    "status": "active",
+    "mission_history": [
+      {
+        "mission": "Python Basics",
+        "status": "passed"
+      },
+      {
+        "mission": "LangChain Agents",
+        "status": "skipped"
+      }
+    ],
+    "stats": {
+      "commit_days": 58,
+      "missions_completed": 5,
+      "first_try_completions": 20
+    }
+  },
+  {
+    "id": "cand-012",
+    "name": "Candidate 12",
+    "role": "AI Engineer",
+    "years_of_experience": 2,
+    "education": "B.S. Computer Science",
+    "status": "graduated",
+    "mission_history": [
+      {
+        "mission": "Python Basics",
+        "status": "passed"
+      },
+      {
+        "mission": "LangChain Agents",
+        "status": "failed"
+      }
+    ],
+    "stats": {
+      "commit_days": 16,
+      "missions_completed": 31,
+      "first_try_completions": 9
+    }
+  },
+  {
+    "id": "cand-013",
+    "name": "Candidate 13",
+    "role": "AI Engineer",
+    "years_of_experience": 4,
+    "education": "B.S. Computer Science",
+    "status": "dropped",
+    "mission_history": [
+      {
+        "mission": "Python Basics",
+        "status": "passed"
+      },
+      {
+        "mission": "LangChain Agents",
+        "status": "skipped"
+      }
+    ],
+    "stats": {
+      "commit_days": 66,
+      "missions_completed": 11,
+      "first_try_completions": 19
+    }
+  },
+  {
+    "id": "cand-014",
+    "name": "Candidate 14",
+    "role": "AI Engineer",
+    "years_of_experience": 4,
+    "education": "B.S. Computer Science",
+    "status": "graduated",
+    "mission_history": [
+      {
+        "mission": "Python Basics",
+        "status": "passed"
+      },
+      {
+        "mission": "LangChain Agents",
+        "status": "passed"
+      }
+    ],
+    "stats": {
+      "commit_days": 18,
+      "missions_completed": 11,
+      "first_try_completions": 16
+    }
+  },
+  {
+    "id": "cand-015",
+    "name": "Candidate 15",
+    "role": "AI Engineer",
+    "years_of_experience": 5,
+    "education": "B.S. Computer Science",
+    "status": "active",
+    "mission_history": [
+      {
+        "mission": "Python Basics",
+        "status": "passed"
+      },
+      {
+        "mission": "LangChain Agents",
+        "status": "failed"
+      }
+    ],
+    "stats": {
+      "commit_days": 13,
+      "missions_completed": 26,
+      "first_try_completions": 11
+    }
+  },
+  {
+    "id": "cand-016",
+    "name": "Candidate 16",
+    "role": "AI Engineer",
+    "years_of_experience": 8,
+    "education": "B.S. Computer Science",
+    "status": "active",
+    "mission_history": [
+      {
+        "mission": "Python Basics",
+        "status": "passed"
+      },
+      {
+        "mission": "LangChain Agents",
+        "status": "skipped"
+      }
+    ],
+    "stats": {
+      "commit_days": 56,
+      "missions_completed": 12,
+      "first_try_completions": 2
+    }
+  },
+  {
+    "id": "cand-017",
+    "name": "Candidate 17",
+    "role": "AI Engineer",
+    "years_of_experience": 6,
+    "education": "B.S. Computer Science",
+    "status": "dropped",
+    "mission_history": [
+      {
+        "mission": "Python Basics",
+        "status": "passed"
+      },
+      {
+        "mission": "LangChain Agents",
+        "status": "failed"
+      }
+    ],
+    "stats": {
+      "commit_days": 26,
+      "missions_completed": 8,
+      "first_try_completions": 3
+    }
+  },
+  {
+    "id": "cand-018",
+    "name": "Candidate 18",
+    "role": "AI Engineer",
+    "years_of_experience": 2,
+    "education": "B.S. Computer Science",
+    "status": "graduated",
+    "mission_history": [
+      {
+        "mission": "Python Basics",
+        "status": "passed"
+      },
+      {
+        "mission": "LangChain Agents",
+        "status": "skipped"
+      }
+    ],
+    "stats": {
+      "commit_days": 60,
+      "missions_completed": 26,
+      "first_try_completions": 13
+    }
+  },
+  {
+    "id": "cand-019",
+    "name": "Candidate 19",
+    "role": "AI Engineer",
+    "years_of_experience": 9,
+    "education": "B.S. Computer Science",
+    "status": "graduated",
+    "mission_history": [
+      {
+        "mission": "Python Basics",
+        "status": "passed"
+      },
+      {
+        "mission": "LangChain Agents",
+        "status": "passed"
+      }
+    ],
+    "stats": {
+      "commit_days": 49,
+      "missions_completed": 24,
+      "first_try_completions": 20
+    }
+  },
+  {
+    "id": "cand-020",
+    "name": "Candidate 20",
+    "role": "AI Engineer",
+    "years_of_experience": 2,
+    "education": "B.S. Computer Science",
+    "status": "active",
+    "mission_history": [
+      {
+        "mission": "Python Basics",
+        "status": "passed"
+      },
+      {
+        "mission": "LangChain Agents",
+        "status": "failed"
+      }
+    ],
+    "stats": {
+      "commit_days": 100,
+      "missions_completed": 19,
+      "first_try_completions": 17
+    }
+  }
+]
