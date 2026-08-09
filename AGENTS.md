@@ -1,115 +1,82 @@
-# 🤖 AGENTS.md — AI Agent Context Guide
+# 🤖 AGENTS.md — AI Interview Agent Context Guide
 
 > **Read this file first** before making any changes to the project.
-> This provides full context for any AI coding agent working on this repo.
-
----
-
-## 📌 Project Overview
-
-**The Interview Agent** — A Google Gemini & Breeth Memory API-powered conversational interview simulator that evaluates candidates based on custom curricula and distills their profile.
-
-- **GitHub:** https://github.com/Anxhutek/ai-interview-agent-v1.git
-- **Architecture:** Next.js Frontend ↔ FastAPI Backend ↔ Gemini 2.0 Flash AI & Breeth Memory Layer
+> This document provides the complete context required for any AI coding agent operating within this repository.
 
 ---
 
 ## 🏗️ Project Structure
 
-```
+```text
 ai-interview-agent-v1/
-├── backend/                    # FastAPI Python backend
-│   ├── app/
-│   │   ├── main.py             # Entry point (CORS, routers)
-│   │   ├── core/
-│   │   │   ├── breeth_service.py # Breeth Memory API integration
-│   │   │   └── config.py       # Pydantic BaseSettings
-│   │   ├── models/
-│   │   │   └── schemas.py      # Request/Response models
-│   │   └── api/routes/
-│   │       ├── interview.py    # Interview flow and session routes
-│   │       └── health.py       # Health check
-│   ├── requirements.txt
-│   ├── Dockerfile
-│   └── .env.example
-├── frontend/                   # Next.js TypeScript frontend
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── page.tsx        # Conversational / wizard UI
-│   │   │   ├── layout.tsx      # Root layout
-│   │   │   └── globals.css     # CSS & Tailwind configuration
-│   │   ├── hooks/
-│   │   │   └── useInterview.ts # State hook for conversation flow
-│   │   └── lib/
-│   │       └── api.ts          # Backend API client
-│   ├── package.json
-│   └── Dockerfile
-├── PROJECT_STATE.md            # Architecture & API contracts (READ THIS)
-├── TASKS.md                    # Shared task board
-├── PROMPTS.md                  # AI interaction log (hackathon artifact)
-├── AI_USAGE.md                 # AI usage metrics (tokens, tool calls)
-├── CHANGELOG.md                # Changes log
-└── ARCHITECTURE.md             # System architecture specs
+├── backend/
+│   ├── main.py              # FastAPI application entry point
+│   ├── core/
+│   │   ├── config.py        # Environment variables and system configurations
+│   │   └── dependencies.py  # Shared injection dependencies
+│   ├── routers/
+│   │   ├── sessions.py      # Interview session endpoints
+│   │   ├── questions.py     # Question generation endpoints
+│   │   └── health.py        # Health check endpoint
+│   ├── models/
+│   │   ├── schemas.py       # Pydantic request and response schemas
+│   │   └── database.py      # SQLAlchemy/SQLModel ORM data models
+│   ├── services/
+│   │   ├── ai_service.py    # Breeth AI integration service
+│   │   ├── evaluation.py    # Answer evaluation logic and scoring
+│   │   └── session.py       # Interview session lifecycle management
+│   └── tests/
+│       └── test_*.py        # Automated pytest test suites
+├── frontend/                 # React/Next.js implementation (Frontend Agent domain)
+├── PROJECT_STATE.md          # Architecture overview and API contracts
+├── TASKS.md                  # Kanban task tracking board
+├── AGENTS.md                 # This file (Agent protocol guide)
+├── PROMPTS.md                # Execution log for Agent prompts and actions
+├── AI_USAGE.md               # Tool execution and API usage telemetry
+├── CHANGELOG.md              # Versioning and release history
+└── ARCHITECTURE.md           # Comprehensive system architecture details
 ```
 
 ---
 
 ## ⚠️ Critical Rules for Agents
 
-1. **PROMPTS.md Automation:** Before completing a task, append both the User's prompt AND any self-generated prompts, personas, or internal instructions you used to execute the sub-tasks in `PROMPTS.md`.
-2. **AI_USAGE.md Automation:** Log your API tool calls, token usage estimates, and agent actions to `AI_USAGE.md` before staging files.
-3. **CHANGELOG.md Automation:** Log commit details, versions, and release updates to `CHANGELOG.md`.
-4. **ARCHITECTURE.md Automation:** If your changes introduce new files, schemas, or routing logic, immediately update the architecture specifications in `ARCHITECTURE.md`.
-5. **READ** `PROJECT_STATE.md` for API contracts before making backend changes.
-6. **CHECK** `TASKS.md` before starting work to avoid conflicts.
-7. **UPDATE** `TASKS.md` when you start/finish a task.
-8. **Branch strategy:** Work on `feature/<name>` branches, PR to `master`.
-9. **Commit format:** `feat: <description> [Agent Name]` or `fix: <description> [Agent Name]`.
-10. **Credentials:** Never commit real secrets. Prompt the user in chat if you need credentials.
-11. **Startup Protocol:** Always execute the startup checks (Role Selection, Repo check, Credential retrieval) before executing any development work.
+1. **PROMPTS.md Automation:** Prior to finalizing a task, append both the original User prompt and any generated personas, system prompts, or internal execution instructions to `PROMPTS.md`.
+2. **AI_USAGE.md Automation:** Record all API tool executions, token consumption estimates, and operational actions in `AI_USAGE.md` before staging files.
+3. **CHANGELOG.md Automation:** Document commit details, semantic versions, and deployment notes in `CHANGELOG.md`. (Integrates with CI/CD deployment pipelines if active).
+4. **ARCHITECTURE.md Automation:** When introducing new files, schemas, or routing logic, immediately synchronize the architecture specifications in `ARCHITECTURE.md`.
+5. **Contract Review:** Read `PROJECT_STATE.md` to verify API contracts prior to executing backend modifications.
+6. **Task Synchronization:** Review `TASKS.md` before commencing development to mitigate merge conflicts.
+7. **Task Tracking:** Update `TASKS.md` immediately upon starting or concluding an assigned task.
+8. **Branch Strategy:** Execute all work on `feature/<name>` branches and submit Pull Requests to `master`.
+9. **Commit Format:** Enforce conventional commits: `feat: <description> [Agent Name]` or `fix: <description> [Agent Name]`.
+10. **Credentials Security:** **Never commit hardcoded secrets, tokens, or credentials.** Rely exclusively on environment variables and prompt the user if required credentials are missing.
+11. **Startup Protocol:** Mandatorily execute startup checks (Role Selection, Repository Status, Credential Verification) prior to initiating development workflows.
 
 ---
 
-## 🚀 Local Development
+## 🔧 Technology Stack
 
-### Backend
+- **Backend:** Python 3.11+, FastAPI, Uvicorn
+- **AI Provider:** Breeth API (Dynamic question generation and real-time evaluation)
+- **Database:** SQLite (Development) / Firestore (Production)
+- **ORM:** SQLAlchemy / SQLModel
+- **Testing:** pytest, httpx
+- **Frontend:** React / Next.js (Managed by the Frontend Agent)
+
+---
+
+## 🚀 Local Development Guidelines
+
+### Backend Initialization
 ```bash
 cd backend
-python -m venv venv
-source venv/bin/activate  # or venv\Scripts\activate on Windows
 pip install -r requirements.txt
-cp .env.example .env
-# Add BREETH_API_KEY to .env
-uvicorn app.main:app --reload --port 8080
+uvicorn main:app --reload --port 8000
 ```
 
-### Frontend
+### Test Execution
 ```bash
-cd frontend
-npm install
-# Backend URL is configured in .env.local
-npm run dev
-# Opens on http://localhost:3000
+cd backend
+pytest -v
 ```
-
----
-
-## 📡 API Quick Reference
-
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/health` | GET | Health check |
-| `/api/interview/start` | POST | Initialize a new interview session |
-| `/api/interview/message` | POST | Post user answer & retrieve next question |
-| `/api/interview/feedback` | GET | Get feedback, score, and distilled profile |
-
-See `PROJECT_STATE.md` for full request/response schemas.
-
----
-
-## 🎨 Frontend Design Guidelines
-
-- **Theme:** Dark mode primary, premium feel (deep blacks, slate/indigo accents, glassmorphic overlays)
-- **Typography:** Outfit / Inter (Google Fonts)
-- **Animations:** Fluid transitions, pulsing states for typing indicators, smooth fading elements
-- **Framework:** Vanilla CSS & Tailwind CSS v4
