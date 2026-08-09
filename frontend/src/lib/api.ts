@@ -157,7 +157,7 @@ export interface BreethGraph {
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ||
   (typeof window !== 'undefined' && window.location.hostname !== 'localhost'
-    ? ''
+    ? `http://${window.location.hostname}:8000`
     : 'http://localhost:8000');
 
 // ── Unified Interview API Client ──────────────────
