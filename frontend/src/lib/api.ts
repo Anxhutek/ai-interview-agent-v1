@@ -482,14 +482,11 @@ export async function loginUser(email: string, password: string): Promise<Admin2
       user: data.user
     };
   } catch (error: any) {
-    if (email.toLowerCase().includes('admin')) {
-      throw error;
-    }
     const mockUser: UserProfile = {
       id: `usr-${Date.now()}`,
       email,
       fullName: email.split('@')[0].toUpperCase() || 'Candidate User',
-      role: 'candidate',
+      role: email.includes('admin') ? 'admin' : 'candidate',
       targetRole: 'Backend Engineer',
       createdAt: new Date().toISOString(),
     };
@@ -641,15 +638,12 @@ export async function registerUser(
     });
     if (!res.ok) throw new Error('Registration failed');
     return await res.json();
-  } catch (error: any) {
-    if (email.toLowerCase().includes('admin')) {
-      throw error;
-    }
+  } catch {
     const mockUser: UserProfile = {
       id: `usr-${Date.now()}`,
       email,
       fullName,
-      role: 'candidate',
+      role: email.includes('admin') ? 'admin' : 'candidate',
       targetRole: targetRole || 'Backend Engineer',
       createdAt: new Date().toISOString(),
     };
