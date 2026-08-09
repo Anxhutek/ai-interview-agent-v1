@@ -42,6 +42,7 @@ export default function Home() {
 
   const [formName, setFormName] = useState(user?.fullName || '');
   const [formId, setFormId] = useState('');
+  const [candidateId, setCandidateId] = useState('cand-001');
   const [isLoading, setIsLoading] = useState(false);
   const [proctoringWarnings, setProctoringWarnings] = useState(0);
   const [showGraphTab, setShowGraphTab] = useState(false);
@@ -52,7 +53,6 @@ export default function Home() {
   useEffect(() => {
     if (user) {
       setFormName(user.fullName);
-      setFormId(user.email);
     }
   }, [user]);
 
@@ -89,7 +89,7 @@ export default function Home() {
   const handleStart = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    await beginInterview(formId || 'candidate-1', formName || 'Candidate');
+    await beginInterview(candidateId || 'cand-001', formName || user?.fullName || 'Candidate');
     setIsLoading(false);
   };
 
@@ -296,11 +296,10 @@ export default function Home() {
                         Select Candidate Profile
                       </label>
                       <select
-                        value={formId}
-                        onChange={(e) => setFormId(e.target.value)}
+                        value={candidateId}
+                        onChange={(e) => setCandidateId(e.target.value)}
                         className="w-full px-4 py-2.5 bg-zinc-900/60 border border-zinc-800 rounded-lg text-sm text-zinc-200 focus:outline-none focus:border-indigo-500 transition-colors"
                       >
-                        <option value="">-- Choose Candidate --</option>
                         {Array.from({ length: 20 }, (_, i) => {
                           const cand = `cand-${String(i + 1).padStart(3, '0')}`;
                           return <option key={cand} value={cand}>{cand} - Candidate {i + 1}</option>;
