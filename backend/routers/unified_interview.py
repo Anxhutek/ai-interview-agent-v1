@@ -1,147 +1,138 @@
-import json
+﻿import json
 import os
 import uuid
-from typing import Dict, Optional, Any
-from fastapi import APIRouter, Depends, HTTPException, Body
+from typing import Dict, Optional, Any, List
+
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.dependencies import get_db, get_ai_orchestrator
-from services.ai.ai_orchestrator import AIOrchestrator
+from services.curriculum_router import CurriculumRouter
 
-router = APIRouter(tags=['unified_interview'])
+router = APIRouter(tags=["unified_interview"])
 
-# In-memory storage for session context for the hackathon (so we don't have to overhaul the DB schema for now)
+# In-memory session store (per the hackathon technical spec)
 session_store: Dict[str, Dict[str, Any]] = {}
 
+
 class UnifiedInterviewRequest(BaseModel):
-    sessionId: str
+    sessionId: Optional[str] = None
     candidateId: str
-    message: str
+    message: Optional[str] = None
+
 
 class UnifiedInterviewResponse(BaseModel):
+    sessionId: str
     reply: str
     done: bool
     feedback: Optional[Dict[str, Any]] = None
 
-def load_candidate(candidate_id: str):
-    path = os.path.join(os.path.dirname(__file__), '..', 'data', 'candidates.json')
+
+def load_candidate(candidate_id: str) -> Dict[str, Any]:
+    path = os.path.join(os.path.dirname(__file__), "..", "data", "candidates.json")
     try:
-        with open(path, 'r', encoding='utf-8') as f:
+        with open(path, "r", encoding="utf-8") as f:
             candidates = json.load(f)
             for c in candidates:
-                if c['id'] == candidate_id:
+                if str(c.get("id", "")).lower() == str(candidate_id).lower():
                     return c
     except Exception:
         pass
-    return None
+    return {"id": candidate_id, "name": "Candidate", "mission_history": []}
 
-def load_curriculum():
-    path = os.path.join(os.path.dirname(__file__), '..', 'data', 'curriculum.json')
-    try:
-        with open(path, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except Exception:
-        pass
-    return {}
 
-SYSTEM_PROMPT = """You are an expert AI technical interviewer.
-You are interviewing a candidate for an AI Engineering role based on a 31-day AI learning curriculum.
-You must adapt your questions based on their mission history (e.g., if they failed or skipped a mission, probe those concepts; if they passed, ask deeper questions).
-Ask ONE technical question at a time. Do not answer it for them.
-Maintain the conversation, ask follow-ups, and evaluate their responses.
-When you feel you have gathered enough information to assess their skills (e.g., after 3-5 exchanges), you MUST end the interview by outputting exactly the word "<DONE>" followed by a JSON object containing the feedback.
-
-Output format for concluding:
-<DONE>
-{{
-    "summary": "...",
-    "strengths": ["...", "..."],
-    "gaps": ["...", "..."],
-    "next": ["..."]
-}}
-
-Candidate Profile:
-{candidate_profile}
-
-Curriculum Modules:
-{curriculum}
-"""
-
-@router.post('/api/interview', response_model=UnifiedInterviewResponse)
-async def unified_interview(
-    data: UnifiedInterviewRequest,
-    orchestrator: AIOrchestrator = Depends(get_ai_orchestrator)
-):
+@router.post("/api/interview", response_model=UnifiedInterviewResponse)
+async def unified_interview(data: UnifiedInterviewRequest):
+    """
+    Unified interview endpoint per hackathon spec (POST /api/interview).
+    - No authentication required.
+    - Session-based: first call starts, subsequent calls continue.
+    - Returns done=True with feedback at the end.
+    """
     session_id = data.sessionId
-    if not session_id:
-        session_id = str(uuid.uuid4())
+    is_new_session = not session_id or session_id not in session_store
 
-    if session_id not in session_store:
+    if is_new_session:
+        session_id = session_id or str(uuid.uuid4())
         candidate = load_candidate(data.candidateId)
-        if not candidate:
-            candidate = {"id": data.candidateId, "name": "Unknown Candidate", "mission_history": []}
-        
-        curriculum = load_curriculum()
-        
-        sys_prompt = SYSTEM_PROMPT.format(
-            candidate_profile=json.dumps(candidate, indent=2),
-            curriculum=json.dumps(curriculum, indent=2)
-        )
-        
+        curriculum_router = CurriculumRouter()
         session_store[session_id] = {
             "candidate": candidate,
-            "history": [
-                {"role": "system", "content": sys_prompt}
-            ],
-            "turn_count": 0
+            "router": curriculum_router,
+            "turn_index": 0,
+            "is_done": False,
+            "turn_scores": [],
         }
-    
-    session_data = session_store[session_id]
-    history = session_data["history"]
-    
-    # Append user message
-    history.append({"role": "user", "content": data.message})
-    session_data["turn_count"] += 1
-
-    # Call AI Orchestrator
-    try:
-        # Assuming orchestrator.generate_text supports history or we can just stringify it
-        # AIOrchestrator in this codebase usually takes prompt and system_prompt.
-        # Let's flatten the history for the orchestrator.
-        prompt = "\n".join([f"{msg['role'].upper()}: {msg['content']}" for msg in history])
-        
-        # We use a wrapper system prompt to instruct the AI
-        ai_response, provider, model, latency = await orchestrator.generate_with_fallback(
-            prompt=prompt,
-            system_instruction="You are an AI interviewer. Respond to the USER.",
-            temperature=0.7
+        first_question = curriculum_router.get_initial_question()
+        greeting = (
+            f"Hello {candidate.get('name', 'Candidate')}! "
+            f"Welcome to your AI Technical Interview for the {candidate.get('role', 'Software Engineer')} role. "
+            f"I will be asking you 8 structured questions covering key engineering topics. "
+            f"Let us begin!\n\n{first_question}"
         )
-        
-        history.append({"role": "assistant", "content": ai_response})
-        
-        # Check if AI finished the interview
-        if "<DONE>" in ai_response:
-            parts = ai_response.split("<DONE>")
-            reply = parts[0].strip()
-            feedback_str = parts[1].strip()
-            
-            # Clean JSON if necessary
-            feedback_str = feedback_str.replace("```json", "").replace("```", "").strip()
-            
-            try:
-                feedback = json.loads(feedback_str)
-            except Exception:
-                feedback = {
-                    "summary": "Interview completed but feedback parsing failed.",
-                    "strengths": [],
-                    "gaps": [],
-                    "next": []
-                }
-                
-            return UnifiedInterviewResponse(reply=reply, done=True, feedback=feedback)
-            
-        return UnifiedInterviewResponse(reply=ai_response, done=False)
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return UnifiedInterviewResponse(sessionId=session_id, reply=greeting, done=False)
+
+    session_data = session_store[session_id]
+
+    if session_data.get("is_done"):
+        raise HTTPException(status_code=400, detail="Interview already completed for this session.")
+
+    message = data.message or ""
+    router_obj: CurriculumRouter = session_data["router"]
+    turn_index = session_data["turn_index"]
+
+    if not message.strip():
+        if turn_index < len(router_obj.curriculum):
+            return UnifiedInterviewResponse(
+                sessionId=session_id,
+                reply="Please provide your answer to continue. " + router_obj.curriculum[turn_index]["question"],
+                done=False
+            )
+
+    reply, is_finished, evaluation = router_obj.process_turn(
+        turn_index=turn_index,
+        candidate_message=message,
+        historical_evaluations=session_data.get("turn_scores", [])
+    )
+
+    session_data["turn_scores"].append(evaluation)
+    session_data["turn_index"] = turn_index + 1
+
+    if is_finished:
+        session_data["is_done"] = True
+        all_strengths: List[str] = []
+        all_gaps: List[str] = []
+        for ts in session_data["turn_scores"]:
+            all_strengths.extend(ts.get("strengths", []))
+            all_gaps.extend(ts.get("improvements", []))
+
+        avg_score = router_obj.get_average_score()
+        candidate = session_data["candidate"]
+
+        if avg_score >= 75:
+            status = "Strong Candidate"
+        elif avg_score >= 55:
+            status = "Proficient Candidate"
+        elif avg_score >= 40:
+            status = "Developing Candidate"
+        else:
+            status = "Needs Improvement"
+
+        feedback = {
+            "summary": (
+                f"{candidate.get('name', 'Candidate')} completed all 8 technical modules "
+                f"with an average score of {avg_score}/100. Status: {status}."
+            ),
+            "strengths": list(dict.fromkeys(all_strengths))[:5],
+            "gaps": list(dict.fromkeys(all_gaps))[:5],
+            "next": [
+                "Review topics where score was low",
+                "Practice system design problems",
+                "Study distributed systems fundamentals"
+            ],
+            "score": round(avg_score, 1),
+            "status": status
+        }
+
+        return UnifiedInterviewResponse(sessionId=session_id, reply=reply, done=True, feedback=feedback)
+
+    return UnifiedInterviewResponse(sessionId=session_id, reply=reply, done=False)
