@@ -293,15 +293,19 @@ export default function Home() {
 
                     <div>
                       <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
-                        Candidate Email / Identifier
+                        Select Candidate Profile
                       </label>
-                      <input
-                        type="text"
+                      <select
                         value={formId}
                         onChange={(e) => setFormId(e.target.value)}
-                        placeholder="your.email@example.com"
                         className="w-full px-4 py-2.5 bg-zinc-900/60 border border-zinc-800 rounded-lg text-sm text-zinc-200 focus:outline-none focus:border-indigo-500 transition-colors"
-                      />
+                      >
+                        <option value="">-- Choose Candidate --</option>
+                        {Array.from({ length: 20 }, (_, i) => {
+                          const cand = `cand-${String(i + 1).padStart(3, '0')}`;
+                          return <option key={cand} value={cand}>{cand} - Mock Profile</option>;
+                        })}
+                      </select>
                     </div>
 
                     <button

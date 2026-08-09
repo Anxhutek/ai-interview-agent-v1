@@ -759,3 +759,32 @@ export function buildBreethGraph(
     neighbors,
   };
 }
+
+export interface UnifiedFeedback {
+  summary: string;
+  strengths: string[];
+  gaps: string[];
+  next: string[];
+}
+
+export interface UnifiedInterviewResponse {
+  reply: string;
+  done: boolean;
+  feedback?: UnifiedFeedback;
+}
+
+export async function sendUnifiedInterviewMessage(
+  sessionId: string,
+  candidateId: string,
+  message: string
+): Promise<UnifiedInterviewResponse> {
+  const res = await fetch(`${BASE_URL}/api/interview`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sessionId, candidateId, message }),
+  });
+  if (!res.ok) {
+    throw new Error('Failed to send unified message');
+  }
+  return res.json();
+}

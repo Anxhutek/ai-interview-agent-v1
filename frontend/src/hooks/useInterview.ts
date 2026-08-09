@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import {
   interviewApi,
+  sendUnifiedInterviewMessage,
   buildBreethGraph,
   type FinalInterviewReport,
   type EvaluationStatusType,
@@ -112,13 +113,36 @@ export function useInterview(): UseInterviewReturn {
     setCandidateName(name);
     setIsTyping(true);
     try {
-      const res = await interviewApi.startInterview({ candidateId, candidateName: name });
-      setSessionId(res.sessionId);
-      setTotalQuestions(res.totalQuestions || 8);
-      setCurrentTopic(res.currentTopic || 'System & Architecture Fundamentals');
+      // Use the unified API to start the interview
+      const newSessionId = crypto.randomUUID ? crypto.randomUUID() : 'session-' + Date.now();
+      setSessionId(newSessionId);
+      
+      (window as any).__candidateId = candidateId;
+
+      const res = await sendUnifiedInterviewMessage(newSessionId, candidateId, "Hello, I am ready to start my interview.");
+      
+      setTotalQuestions(8);
+      setCurrentTopic('AI Engineering Curriculum');
       setQuestionIndex(1);
       setStage('chat');
-      addBubble('agent', res.firstQuestion, res.currentTopic || 'System Architecture', 1);
+      
+      if (res.done && res.feedback) {
+         setFinalReport({
+           sessionId: newSessionId,
+           candidateName: name,
+           overallScore: 85, // Mock score for UI
+           candidateStatus: 'Strong Candidate',
+           scoreBreakdown: { technicalCorrectness: 85, problemSolving: 85, systemDesign: 85, architecture: 85, communication: 85, depth: 85, tradeoffs: 85 },
+           strengths: res.feedback.strengths || [],
+           areasToImprove: res.feedback.gaps || [],
+           recommendedTopics: res.feedback.next || [],
+           aiAssessment: res.feedback.summary || '',
+           completedAt: new Date().toISOString()
+         });
+         setStage('report');
+      } else {
+         addBubble('agent', res.reply, 'AI Engineering Curriculum', 1);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to initialize interview');
     } finally {

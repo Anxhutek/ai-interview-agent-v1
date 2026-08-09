@@ -87,3 +87,14 @@ I have 3 files for my AI Interview Agent project: technical-spec.md, candidates.
 3. Engineered a dynamic system prompt to evaluate candidate mission history vs curriculum.
 4. Handled memory conversational state in backend.
 5. Built automated integration tests via scratch/test_unified_api.py.
+
+### User Prompt:
+`	ext
+Connect the Next.js frontend to the new Unified API.
+`
+
+### Agent Internal Instructions / Sub-tasks:
+1. Added sendUnifiedInterviewMessage to pi.ts to connect to POST /api/interview.
+2. Refactored useInterview.ts to manage unified interview loop, bypassing legacy polling for evaluation.
+3. Added a Candidate Selector dropdown to page.tsx for testing specific candidates.
+4. Adapted final feedback UI to show new text-based structure and mock score.
