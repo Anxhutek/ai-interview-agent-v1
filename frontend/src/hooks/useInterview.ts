@@ -113,36 +113,19 @@ export function useInterview(): UseInterviewReturn {
     setCandidateName(name);
     setIsTyping(true);
     try {
-      // Use the unified API to start the interview
+      // Generate a new sessionId and store candidateId for later answers
       const newSessionId = crypto.randomUUID ? crypto.randomUUID() : 'session-' + Date.now();
       setSessionId(newSessionId);
-      
       (window as any).__candidateId = candidateId;
 
-      const res = await sendUnifiedInterviewMessage(newSessionId, candidateId, "Hello, I am ready to start my interview.");
-      
+      // POST with no message — backend returns greeting + first question
+      const res = await sendUnifiedInterviewMessage(newSessionId, candidateId, '');
+
       setTotalQuestions(8);
-      setCurrentTopic('AI Engineering Curriculum');
+      setCurrentTopic('System & Architecture Fundamentals');
       setQuestionIndex(1);
       setStage('chat');
-      
-      if (res.done && res.feedback) {
-         setFinalReport({
-           sessionId: newSessionId,
-           candidateName: name,
-           overallScore: 85, // Mock score for UI
-           candidateStatus: 'Strong Candidate',
-           scoreBreakdown: { technicalCorrectness: 85, problemSolving: 85, systemDesign: 85, architecture: 85, communication: 85, depth: 85, tradeoffs: 85 },
-           strengths: res.feedback.strengths || [],
-           areasToImprove: res.feedback.gaps || [],
-           recommendedTopics: res.feedback.next || [],
-           aiAssessment: res.feedback.summary || '',
-           completedAt: new Date().toISOString()
-         });
-         setStage('report');
-      } else {
-         addBubble('agent', res.reply, 'AI Engineering Curriculum', 1);
-      }
+      addBubble('agent', res.reply, 'System & Architecture Fundamentals', 1);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to initialize interview');
     } finally {
@@ -180,44 +163,71 @@ export function useInterview(): UseInterviewReturn {
       setError(null);
       setSubmissionState('saving');
 
-      // Add user's answer immediately to dialogue
+      // Show user bubble immediately
       addBubble('user', answer);
       setIsTyping(true);
 
       try {
-        const res = await interviewApi.submitAnswer(sessionId, answer, questionIndex - 1);
-        
-        // Confirm answer is saved
+        const candidateId = (window as any).__candidateId || 'c1';
+        const res = await sendUnifiedInterviewMessage(sessionId, candidateId, answer);
+
         setSubmissionState('saved');
-        setDraftText(''); // Clear draft safely only after successful save
+        setDraftText('');
 
-        // Trigger background evaluation polling
-        startEvaluationPolling(sessionId);
-
-        // Advance question progress
         const nextQ = questionIndex + 1;
         setQuestionIndex(Math.min(nextQ, totalQuestions));
-        if (res.currentTopic) setCurrentTopic(res.currentTopic);
 
-        // Add subtle delay before agent speaks
-        await new Promise(r => setTimeout(r, 650));
-        addBubble('agent', res.reply, res.currentTopic, nextQ);
+        await new Promise(r => setTimeout(r, 500));
 
-        if (res.isFinished || nextQ > totalQuestions) {
+        if (res.done && res.feedback) {
+          // Interview finished — build report from unified feedback
+          const fb = res.feedback as any;
+          const score = typeof fb.score === 'number' ? fb.score : 70;
+          const status = fb.status || (score >= 75 ? 'Strong Candidate' : score >= 55 ? 'Proficient Candidate' : score >= 40 ? 'Developing Candidate' : 'Needs Improvement');
+          addBubble('agent', res.reply, currentTopic, nextQ);
           setIsFinished(true);
+          setFinalReport({
+            sessionId,
+            candidateName,
+            overallScore: score,
+            candidateStatus: status,
+            scoreBreakdown: {
+              technicalCorrectness: score,
+              problemSolving: Math.max(0, score - 5),
+              systemDesign: Math.max(0, score - 3),
+              architecture: Math.max(0, score - 7),
+              communication: Math.max(0, score + 2),
+              depth: Math.max(0, score - 4),
+              tradeoffs: Math.max(0, score - 6),
+            },
+            strengths: fb.strengths || [],
+            areasToImprove: fb.gaps || [],
+            recommendedTopics: fb.next || [],
+            aiAssessment: fb.summary || 'Interview completed.',
+            completedAt: new Date().toISOString(),
+          });
+          setGraph(buildBreethGraph(
+            { sessionId, candidateName, overallScore: score, candidateStatus: status, scoreBreakdown: { technicalCorrectness: score, problemSolving: score, systemDesign: score, architecture: score, communication: score, depth: score, tradeoffs: score }, strengths: fb.strengths || [], areasToImprove: fb.gaps || [], recommendedTopics: fb.next || [], aiAssessment: fb.summary || '', completedAt: new Date().toISOString() },
+            candidateName,
+            totalQuestions
+          ));
+          await new Promise(r => setTimeout(r, 1200));
+          setStage('report');
+        } else {
+          addBubble('agent', res.reply, currentTopic, nextQ);
         }
 
-        setTimeout(() => setSubmissionState('idle'), 3000);
+        setTimeout(() => setSubmissionState('idle'), 2000);
         return true;
       } catch (e) {
         setSubmissionState('error');
-        setError(e instanceof Error ? e.message : 'AI service is temporarily busy. Your answer draft is preserved.');
+        setError(e instanceof Error ? e.message : 'Network error. Your answer is preserved, please try again.');
         return false;
       } finally {
         setIsTyping(false);
       }
     },
-    [sessionId, questionIndex, totalQuestions, startEvaluationPolling]
+    [sessionId, questionIndex, totalQuestions, currentTopic, candidateName]
   );
 
   // ── Request Final Report ────────────────────────
