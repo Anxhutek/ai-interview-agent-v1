@@ -1,5 +1,5 @@
 import logging
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +66,6 @@ CURRICULUM_QUESTIONS = [
 ]
 
 # ── Negative / Low-Effort Patterns ─────────────────
-
 LOW_EFFORT_PATTERNS = [
     "i don't know", "i dont know", "idk", "no idea", "not sure",
     "i have no idea", "pass", "skip", "sorry", "nothing",
@@ -86,13 +85,53 @@ class CurriculumRouter:
         """Returns the first question for session start."""
         return self.curriculum[0]["question"]
 
+    def populate_turn_scores(self, historical_evaluations: List[Any]) -> None:
+        """
+        Dynamically reconstruct self.turn_scores from database history for the current session.
+        Prevents stateless request loss and guarantees multi-user session isolation.
+        """
+        self.turn_scores = []
+        for item in historical_evaluations:
+            if isinstance(item, dict):
+                score_val = item.get("score") or item.get("overall_score") or 0.0
+                topic_val = item.get("topic") or "Technical Module"
+                strengths = item.get("strengths") or []
+                improvements = item.get("improvements") or item.get("weaknesses") or []
+                feedback = item.get("feedback") or item.get("technical_feedback") or ""
+                self.turn_scores.append({
+                    "score": float(score_val),
+                    "topic": topic_val,
+                    "feedback": feedback,
+                    "strengths": strengths if isinstance(strengths, list) else [],
+                    "improvements": improvements if isinstance(improvements, list) else []
+                })
+            elif hasattr(item, "score") and item.score is not None:
+                topic_val = self.curriculum[item.turn_index]["topic"] if getattr(item, "turn_index", 0) < len(self.curriculum) else "Technical Module"
+                self.turn_scores.append({
+                    "score": float(item.score),
+                    "topic": topic_val,
+                    "feedback": f"Turn {getattr(item, 'turn_index', 0)+1} evaluation",
+                    "strengths": [],
+                    "improvements": []
+                })
+            elif hasattr(item, "overall_score") and item.overall_score is not None:
+                turn_idx = getattr(item, "turn_index", len(self.turn_scores))
+                topic_val = self.curriculum[turn_idx]["topic"] if turn_idx < len(self.curriculum) else "Technical Module"
+                self.turn_scores.append({
+                    "score": float(item.overall_score),
+                    "topic": topic_val,
+                    "feedback": getattr(item, "technical_feedback", "") or getattr(item, "verdict", ""),
+                    "strengths": [],
+                    "improvements": []
+                })
+
     def evaluate_answer(self, turn_index: int, candidate_message: str) -> Dict[str, Any]:
         """
         Evaluate a candidate's answer against the expected keywords and concepts
         for the current curriculum question. Returns score, feedback, strengths, improvements.
         """
         if turn_index >= len(self.curriculum):
-            return {"score": 0, "feedback": "Invalid turn.", "strengths": [], "improvements": []}
+            return {"score": 0.0, "feedback": "Invalid turn.", "strengths": [], "improvements": [], "matched_keywords": [], "topic": "Unknown"}
 
         question_data = self.curriculum[turn_index]
         answer_lower = candidate_message.lower().strip()
@@ -107,7 +146,7 @@ class CurriculumRouter:
 
         if is_low_effort or word_count < 5:
             evaluation = {
-                "score": max(5, min(15, word_count * 2)),
+                "score": float(max(5, min(15, word_count * 2))),
                 "feedback": f"Your answer to '{question_data['topic']}' was insufficient. You did not demonstrate knowledge of the core concepts. A strong answer would discuss {', '.join(question_data['key_concepts'][:3])}.",
                 "strengths": [],
                 "improvements": [
@@ -229,12 +268,17 @@ class CurriculumRouter:
         self,
         turn_index: int,
         candidate_message: str,
-        breeth_search_results: List[Dict[str, Any]] = None
-    ) -> Tuple[str, bool]:
+        breeth_search_results: List[Dict[str, Any]] = None,
+        historical_evaluations: Optional[List[Any]] = None
+    ) -> Tuple[str, bool, Dict[str, Any]]:
         """
         Processes candidate response, evaluates it, then selects next question or concludes.
-        Returns tuple of (reply_text, isFinished).
+        Rehydrates self.turn_scores from historical_evaluations if passed.
+        Returns tuple of (reply_text, isFinished, evaluation_dict).
         """
+        if historical_evaluations is not None:
+            self.populate_turn_scores(historical_evaluations)
+
         # Evaluate this turn's answer
         evaluation = self.evaluate_answer(turn_index, candidate_message)
         score = evaluation["score"]
@@ -251,7 +295,7 @@ class CurriculumRouter:
                 f"Your estimated performance is {'strong' if avg_score >= 70 else 'moderate' if avg_score >= 45 else 'below expectations'}. "
                 f"Click 'View Feedback & Score' to see your detailed evaluation, per-topic breakdown, and distilled cognitive profile!"
             )
-            return finish_msg, True
+            return finish_msg, True, evaluation
 
         next_q = self.curriculum[next_index]["question"]
 
@@ -266,7 +310,7 @@ class CurriculumRouter:
             ack = "That answer was quite brief. Let's move on. "
 
         reply = f"{ack}{next_q}"
-        return reply, False
+        return reply, False, evaluation
 
     def get_average_score(self) -> float:
         """Calculate average score across all evaluated turns."""
@@ -278,12 +322,16 @@ class CurriculumRouter:
         self,
         candidate_name: str,
         turn_count: int,
-        breeth_node_details: Dict[str, Any]
+        breeth_node_details: Dict[str, Any],
+        historical_evaluations: Optional[List[Any]] = None
     ) -> Tuple[str, int, str]:
         """
         Generates feedback string, score int, and distilled profile from actual evaluation data.
-        Falls back to Breeth graph data if available, but prioritizes local scores.
+        Hydrates self.turn_scores from historical_evaluations if passed.
         """
+        if historical_evaluations is not None:
+            self.populate_turn_scores(historical_evaluations)
+
         # Use actual accumulated scores if available
         if self.turn_scores:
             avg_score = self.get_average_score()

@@ -61,6 +61,7 @@ class InterviewTurn(Base):
     turn_index = Column(Integer, nullable=False)
     question_text = Column(Text, nullable=False)
     answer_text = Column(Text, nullable=True)
+    score = Column(Float, nullable=True) # Per-turn evaluation score persisted for multi-user isolation
     breeth_episode_id = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     
@@ -86,8 +87,8 @@ class AnswerEvaluation(Base):
     turn_id = Column(String, ForeignKey('interview_turns.id'), nullable=True)
     question_id = Column(String, nullable=True)
     answer_id = Column(String, nullable=True)
-    provider = Column(String, nullable=False, default='gemini') # 'gemini', 'groq'
-    model = Column(String, nullable=False)
+    provider = Column(String, nullable=False, default='breeth') # 'breeth', 'gemini', 'groq'
+    model = Column(String, nullable=False, default='curriculum_v1')
     scores = Column(Text, nullable=True) # JSON string of 9 dimensions
     overall_score = Column(Float, default=0.0)
     verdict = Column(String, nullable=True, default='satisfactory') # 'strong', 'satisfactory', 'needs_improvement', 'weak'
@@ -171,5 +172,3 @@ async def create_all_tables():
             user.role = "admin"
             user.password_hash = hash_password("Anshukabetaapporv")
             await session.commit()
-
-

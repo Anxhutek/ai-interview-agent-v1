@@ -72,7 +72,11 @@ class SessionService:
         )
 
     async def process_message(self, data: InterviewMessageRequest) -> InterviewMessageResponse:
-        stmt = select(InterviewSession).where(InterviewSession.id == data.sessionId)
+        stmt = select(InterviewSession).options(
+            selectinload(InterviewSession.turns).selectinload(InterviewTurn.evaluation),
+            selectinload(InterviewSession.evaluations)
+        ).where(InterviewSession.id == data.sessionId)
+        
         result = await self.db.execute(stmt)
         session = result.scalar_one_or_none()
         
@@ -84,6 +88,26 @@ class SessionService:
                 reply="This interview session is already completed. Please check your feedback!",
                 isFinished=True
             )
+
+        # Reconstruct historical turn evaluations for this specific session from DB
+        historical_evaluations = []
+        for t in sorted(session.turns, key=lambda x: x.turn_index):
+            if t.evaluation and t.evaluation.overall_score is not None:
+                historical_evaluations.append({
+                    "score": t.evaluation.overall_score,
+                    "topic": self.router.curriculum[t.turn_index]["topic"] if t.turn_index < len(self.router.curriculum) else "Technical Module",
+                    "feedback": t.evaluation.technical_feedback or "",
+                    "strengths": json.loads(t.evaluation.strengths or "[]"),
+                    "improvements": json.loads(t.evaluation.weaknesses or "[]")
+                })
+            elif t.score is not None:
+                historical_evaluations.append({
+                    "score": t.score,
+                    "topic": self.router.curriculum[t.turn_index]["topic"] if t.turn_index < len(self.router.curriculum) else "Technical Module",
+                    "feedback": f"Turn {t.turn_index+1} evaluation",
+                    "strengths": [],
+                    "improvements": []
+                })
 
         # 1. Ingest turn to Breeth memory layer
         group_id = f"candidate_{session.candidate_id}"
@@ -99,19 +123,7 @@ class SessionService:
         )
         episode_id = ingest_res.get("uuid") or ingest_res.get("id")
 
-        # 2. GUARANTEE: Record Turn in local DB BEFORE AI evaluation
-        turn = InterviewTurn(
-            session_id=session.id,
-            turn_index=session.turn_count,
-            question_text=session.current_question or "",
-            answer_text=data.message,
-            breeth_episode_id=str(episode_id) if episode_id else None
-        )
-        self.db.add(turn)
-        await self.db.commit()
-        await self.db.refresh(turn)
-
-        # 3. Query Breeth hybrid search for candidate context
+        # 2. Query Breeth hybrid search for candidate context
         search_res = await self.breeth_service.search_memory(
             query=f"What are {session.candidate_name}'s backend preferences?",
             group_id=group_id,
@@ -119,60 +131,44 @@ class SessionService:
         )
         search_results = search_res.get("results", [])
 
-        # 4. Perform evaluation if eval_service is available
-        if self.eval_service:
-            try:
-                eval_record = AnswerEvaluation(
-                    session_id=session.id,
-                    turn_id=turn.id,
-                    question_id=f"q_{turn.turn_index}",
-                    answer_id=turn.id,
-                    provider="gemini",
-                    model=settings.AI_PRIMARY_MODEL,
-                    evaluation_status="processing"
-                )
-                self.db.add(eval_record)
-                await self.db.commit()
-
-                eval_dict, provider, model, latency = await self.eval_service.evaluate_answer(
-                    question=turn.question_text,
-                    answer=data.message,
-                    target_role=session.role or "Software Engineer",
-                    difficulty=session.difficulty or "medium",
-                    topic="Backend Architecture"
-                )
-
-                eval_record.provider = provider
-                eval_record.model = model
-                eval_record.overall_score = eval_dict.get("overall_score", 70.0)
-                eval_record.verdict = eval_dict.get("verdict", "satisfactory")
-                eval_record.scores = json.dumps(eval_dict.get("scores", {}))
-                eval_record.strengths = json.dumps(eval_dict.get("strengths", []))
-                eval_record.weaknesses = json.dumps(eval_dict.get("weaknesses", []))
-                eval_record.missing_points = json.dumps(eval_dict.get("missing_points", []))
-                eval_record.technical_feedback = eval_dict.get("technical_feedback", "")
-                eval_record.communication_feedback = eval_dict.get("communication_feedback", "")
-                eval_record.improvement_suggestions = json.dumps(eval_dict.get("improvement_suggestions", []))
-                eval_record.evaluation_status = "completed"
-                eval_record.evaluation_latency = latency
-
-                # Update adaptive state
-                cur_state = json.loads(session.adaptive_state or "{}")
-                cur_state["topics_covered"].append(f"Turn {turn.turn_index+1}")
-                cur_state["strengths"].extend(eval_dict.get("strengths", [])[:2])
-                cur_state["weaknesses"].extend(eval_dict.get("weaknesses", [])[:2])
-                session.adaptive_state = json.dumps(cur_state)
-
-                await self.db.commit()
-            except Exception as e:
-                logger.error(f"Async evaluation error for session {session.id}: {e}")
-
-        # 5. Route next question or finish via CurriculumRouter
-        reply, is_finished = self.router.process_turn(
+        # 3. Route next question & evaluate answer via CurriculumRouter
+        reply, is_finished, evaluation = self.router.process_turn(
             turn_index=session.turn_count,
             candidate_message=data.message,
-            breeth_search_results=search_results
+            breeth_search_results=search_results,
+            historical_evaluations=historical_evaluations
         )
+
+        turn_score = evaluation.get("score", 70.0)
+
+        # 4. Record Turn in DB with turn_score
+        turn = InterviewTurn(
+            session_id=session.id,
+            turn_index=session.turn_count,
+            question_text=session.current_question or "",
+            answer_text=data.message,
+            score=turn_score,
+            breeth_episode_id=str(episode_id) if episode_id else None
+        )
+        self.db.add(turn)
+        await self.db.flush()
+
+        # 5. Create AnswerEvaluation DB record for detailed session tracking
+        eval_record = AnswerEvaluation(
+            session_id=session.id,
+            turn_id=turn.id,
+            question_id=f"q_{turn.turn_index}",
+            answer_id=turn.id,
+            provider="breeth",
+            model="curriculum_v1",
+            overall_score=turn_score,
+            verdict="strong" if turn_score >= 75 else "satisfactory" if turn_score >= 50 else "needs_improvement",
+            strengths=json.dumps(evaluation.get("strengths", [])),
+            weaknesses=json.dumps(evaluation.get("improvements", [])),
+            technical_feedback=evaluation.get("feedback", ""),
+            evaluation_status="completed"
+        )
+        self.db.add(eval_record)
 
         # 6. Update session state
         session.turn_count += 1
@@ -213,8 +209,8 @@ class SessionService:
             turn_id=turn.id,
             question_id=f"q_{turn.turn_index}",
             answer_id=turn.id,
-            provider="gemini",
-            model=settings.AI_PRIMARY_MODEL,
+            provider="breeth",
+            model="curriculum_v1",
             evaluation_status="processing"
         )
         self.db.add(eval_record)
@@ -222,34 +218,19 @@ class SessionService:
         await self.db.refresh(eval_record)
 
         # 3. Perform evaluation
-        if self.eval_service:
-            try:
-                eval_dict, provider, model, latency = await self.eval_service.evaluate_answer(
-                    question=turn.question_text,
-                    answer=answer_text,
-                    target_role=session.role or "Software Engineer",
-                    difficulty=session.difficulty or "medium"
-                )
-                eval_record.provider = provider
-                eval_record.model = model
-                eval_record.overall_score = eval_dict.get("overall_score", 70.0)
-                eval_record.verdict = eval_dict.get("verdict", "satisfactory")
-                eval_record.scores = json.dumps(eval_dict.get("scores", {}))
-                eval_record.strengths = json.dumps(eval_dict.get("strengths", []))
-                eval_record.weaknesses = json.dumps(eval_dict.get("weaknesses", []))
-                eval_record.missing_points = json.dumps(eval_dict.get("missing_points", []))
-                eval_record.technical_feedback = eval_dict.get("technical_feedback", "")
-                eval_record.communication_feedback = eval_dict.get("communication_feedback", "")
-                eval_record.improvement_suggestions = json.dumps(eval_dict.get("improvement_suggestions", []))
-                eval_record.evaluation_status = "completed"
-                eval_record.evaluation_latency = latency
+        evaluation = self.router.evaluate_answer(turn.turn_index, answer_text)
+        turn_score = evaluation.get("score", 70.0)
 
-                session.turn_count += 1
-                await self.db.commit()
-            except Exception as e:
-                logger.error(f"Evaluation error for turn {turn.id}: {e}")
-                eval_record.evaluation_status = "failed"
-                await self.db.commit()
+        turn.score = turn_score
+        eval_record.overall_score = turn_score
+        eval_record.verdict = "strong" if turn_score >= 75 else "satisfactory" if turn_score >= 50 else "needs_improvement"
+        eval_record.strengths = json.dumps(evaluation.get("strengths", []))
+        eval_record.weaknesses = json.dumps(evaluation.get("improvements", []))
+        eval_record.technical_feedback = evaluation.get("feedback", "")
+        eval_record.evaluation_status = "completed"
+
+        session.turn_count += 1
+        await self.db.commit()
 
         return AnswerSubmissionResponse(
             success=True,
@@ -320,12 +301,35 @@ class SessionService:
         }
 
     async def get_feedback(self, session_id: str) -> InterviewFeedbackResponse:
-        stmt = select(InterviewSession).where(InterviewSession.id == session_id)
+        stmt = select(InterviewSession).options(
+            selectinload(InterviewSession.turns).selectinload(InterviewTurn.evaluation),
+            selectinload(InterviewSession.evaluations)
+        ).where(InterviewSession.id == session_id)
         result = await self.db.execute(stmt)
         session = result.scalar_one_or_none()
 
         if not session:
             raise ValueError(f"Session '{session_id}' not found")
+
+        # Extract historical turn evaluations from DB for this session
+        historical_evaluations = []
+        for t in sorted(session.turns, key=lambda x: x.turn_index):
+            if t.evaluation and t.evaluation.overall_score is not None:
+                historical_evaluations.append({
+                    "score": t.evaluation.overall_score,
+                    "topic": self.router.curriculum[t.turn_index]["topic"] if t.turn_index < len(self.router.curriculum) else "Technical Module",
+                    "feedback": t.evaluation.technical_feedback or "",
+                    "strengths": json.loads(t.evaluation.strengths or "[]"),
+                    "improvements": json.loads(t.evaluation.weaknesses or "[]")
+                })
+            elif t.score is not None:
+                historical_evaluations.append({
+                    "score": t.score,
+                    "topic": self.router.curriculum[t.turn_index]["topic"] if t.turn_index < len(self.router.curriculum) else "Technical Module",
+                    "feedback": f"Turn {t.turn_index+1} evaluation",
+                    "strengths": [],
+                    "improvements": []
+                })
 
         node_name = session.candidate_name or "Candidate"
         node_details = await self.breeth_service.get_node_details(node_name)
@@ -333,7 +337,8 @@ class SessionService:
         feedback_text, score, distilled_profile = self.router.generate_feedback_report(
             candidate_name=node_name,
             turn_count=session.turn_count,
-            breeth_node_details=node_details
+            breeth_node_details=node_details,
+            historical_evaluations=historical_evaluations
         )
 
         return InterviewFeedbackResponse(
