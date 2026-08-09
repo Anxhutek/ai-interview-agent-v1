@@ -1,45 +1,50 @@
-# 🤖 AI Interview Agent v1 (Because V0 was too human)
+# 🤖 AI Interview Agent - Hackathon Submission
 
-Welcome to the **AI Interview Agent**, a mock interview platform that is far more terrifying—and effective—than any human hiring manager. We generate contextual technical interview questions, ruthlessly evaluate candidate responses in real-time, and provide feedback that leaves no room for imposter syndrome (it'll just confirm it).
+Welcome to the **AI Interview Agent**, a fully autonomous, personalized technical interview platform. 
 
-## 🚀 Features That Will Make You Sweat
+This project was built to satisfy the Hackathon Problem Statement by creating a highly dynamic AI interviewer that tests candidates based on their specific learning history and a rigorous 31-day AI engineering curriculum.
 
-- **3-Column Full-Bleed Workspace**: We eliminated margins and vertical dead space because every pixel matters when we're judging you. 
-- **Live Proctoring Camera HUD & Eye-Tracking**: Yes, we're watching your gaze vector telemetry. Look away from the screen, and we flag you faster than an infinite loop in production. Don't even try to Google the answers.
-- **Interactive Candidate Scratchpad Workspace**: A dedicated space to nervously type and delete code while our AI watches every keystroke. 
-- **Multi-Dimensional AI Scoring & Breeth Memory Graph Routing**: We don't just score your code. We score your soul. The Memory Graph remembers that time you forgot what a pointer was.
-- **SQLite Backend & JWT Session Isolation**: We keep your failures perfectly isolated so no one else has to witness them. 
-- **Zero TypeScript Warnings**: We compile cleanly, which is more than we can say for the code you'll write during this interview.
+## 🚀 Key Features (Hackathon Requirements)
 
-## 🏗️ Tech Stack (The Architecture of Your Demise)
+- **Unified API (`POST /api/interview`)**: A single, stateful conversational endpoint that handles the entire interview process. No authentication or login is required to access this API.
+- **Candidate Personalization (`candidates.json`)**: Contains 20 unique mock candidate profiles. The AI actively reads the candidate's specific mission history (passed, failed, skipped) and progress statistics to tailor the interview to their weaknesses.
+- **Dynamic Curriculum (`curriculum.json`)**: A complete 31-day, 8-module AI learning curriculum. The AI cross-references the candidate's profile against this curriculum (covering topics like RAG, LangChain, MCP, Docker, and Fine-Tuning) to generate highly technical, relevant questions.
+- **Conversational Memory**: The backend maintains strict conversational state across multiple requests using a persistent `sessionId`.
+- **Structured AI Feedback**: Once the AI determines the interview is complete, it outputs a strict JSON payload summarizing the candidate's performance, strengths, knowledge gaps, and recommended next steps.
+
+## 🏗️ Tech Stack
 
 | Component | Technology |
 |-----------|-----------|
 | Backend | Python, FastAPI, Uvicorn |
-| AI Engine | Breeth API (Our sentient overlord) |
-| Database | SQLite (dev) / Firestore (prod) |
-| Security | JWT, 2FA, Tears of Candidates |
-| Frontend | React / Next.js (Full-bleed perfection) |
+| AI Engine | Gemini / Groq Multi-Fallback Orchestration |
+| Knowledge Base | JSON (Candidates & Curriculum) |
+| Frontend | React, Next.js, Tailwind CSS |
+| Hosting | Custom VPS & Nginx Reverse Proxy |
 
-## 📦 Quick Start (If You Dare)
+## 📦 Run it Locally
 
-### Backend
+### 1. Backend API
 ```bash
 cd backend
 pip install -r requirements.txt
-# Run it. Pray it works.
-uvicorn main:app --reload --port 8000
+python -m uvicorn main:app --reload --port 8000
 ```
+*Access the Unified API at `http://localhost:8000/api/interview`*
 
-### API Docs
-Once running, marvel at our swagger at: `http://localhost:8000/docs`
+### 2. Frontend UI
+```bash
+cd frontend
+npm install
+npm run dev -p 3001
+```
+*Access the Interview Dashboard at `http://localhost:3001`*
 
-## 📋 The Sacred Texts
-
-- [`PROJECT_STATE.md`](PROJECT_STATE.md) — The Holy Contracts.
-- [`TASKS.md`](TASKS.md) — What we're fixing when we're not busy judging you.
-- [`AGENTS.md`](AGENTS.md) — How the AI agents coordinate to take your job.
-- [`ARCHITECTURE.md`](ARCHITECTURE.md) — System design, featuring our inescapable proctoring eye.
+## 📋 Hackathon Verification Files
+- [`PROMPTS.md`](PROMPTS.md) — Our complete AI Usage Log proving genuine vibe-coding.
+- [`backend/docs/technical-spec.md`](backend/docs/technical-spec.md) — The API interface requirements.
+- [`backend/data/candidates.json`](backend/data/candidates.json) — Candidate profiles database.
+- [`backend/data/curriculum.json`](backend/data/curriculum.json) — 31-day curriculum database.
 
 ---
-Built with ☕, sarcasm, and a strict rate limit for the Gemini Hackathon 2026.
+*Built for the Hackathon 2026. Ready for the Live Steer Challenge.*
