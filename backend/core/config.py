@@ -1,8 +1,9 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import List
 
+import os
+
 class Settings(BaseSettings):
-    import os
     APP_NAME: str = 'AI Interview Agent'
     VERSION: str = '0.1.0'
     DEBUG: bool = True
