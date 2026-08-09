@@ -109,7 +109,9 @@ export default function Home() {
   };
 
   return (
-    <main className="relative min-h-screen w-full flex flex-col items-center justify-between p-4 md:p-8 overflow-hidden bg-[#09090b]">
+    <main className={`relative w-full flex flex-col items-center bg-[#09090b] ${
+      stage === 'chat' ? 'h-screen overflow-hidden' : 'min-h-screen p-4 md:p-8 overflow-x-hidden'
+    }`}>
       {/* Background Glows */}
       <div className="radial-glow top-[-100px] left-[-100px]" />
       <div className="radial-glow-secondary bottom-[-100px] right-[-100px]" />
@@ -119,26 +121,28 @@ export default function Home() {
       <ProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
 
       {/* Header */}
-      <header className="relative z-10 w-full max-w-6xl flex items-center justify-between py-4 border-b border-zinc-800/60 mb-6">
+      <header className={`relative z-10 w-full shrink-0 flex items-center justify-between border-b border-zinc-800/60 ${
+        stage === 'chat' ? 'h-14 px-4 md:px-6 max-w-[1500px]' : 'py-4 max-w-6xl mb-6'
+      }`}>
         <div className="flex items-center space-x-3">
-          <div className="h-9 w-9 rounded-lg bg-gradient-to-tr from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-zinc-100 to-zinc-400 bg-clip-text text-transparent font-outfit">
+            <h1 className="text-base md:text-lg font-bold tracking-tight bg-gradient-to-r from-zinc-100 to-zinc-400 bg-clip-text text-transparent font-outfit">
               The Interview Agent
             </h1>
-            <p className="text-xs text-zinc-500">Autonomous AI Technical Interviewer &amp; Proctor</p>
+            <p className="text-[10px] text-zinc-500">Autonomous AI Technical Interviewer &amp; Proctor</p>
           </div>
         </div>
 
         {/* User Navigation Controls */}
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2.5">
           <Link
             href="/admin"
-            className="px-3.5 py-1.5 text-xs font-medium text-violet-400 hover:text-white bg-violet-950/40 hover:bg-violet-900/60 border border-violet-900/50 rounded-lg transition-all flex items-center space-x-1.5"
+            className="px-3 py-1.5 text-xs font-medium text-violet-400 hover:text-white bg-violet-950/40 hover:bg-violet-900/60 border border-violet-900/50 rounded-lg transition-all flex items-center space-x-1.5"
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -150,7 +154,7 @@ export default function Home() {
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => setIsProfileOpen(true)}
-                className="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-indigo-500/50 transition-all"
+                className="flex items-center space-x-2 px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-indigo-500/50 transition-all"
               >
                 <div className="h-5 w-5 rounded-full bg-indigo-600 overflow-hidden flex items-center justify-center text-[10px] font-bold text-white">
                   {user.avatarUrl ? (
@@ -159,7 +163,7 @@ export default function Home() {
                     user.fullName.charAt(0).toUpperCase()
                   )}
                 </div>
-                <span className="text-xs text-zinc-200 font-medium">{user.fullName}</span>
+                <span className="text-xs text-zinc-200 font-medium truncate max-w-[100px] md:max-w-[140px]">{user.fullName}</span>
               </button>
               <button
                 onClick={logout}
@@ -174,16 +178,16 @@ export default function Home() {
           ) : (
             <button
               onClick={() => setIsAuthOpen(true)}
-              className="px-3.5 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 rounded-lg transition-all shadow-md shadow-indigo-500/20"
+              className="px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 rounded-lg transition-all shadow-md shadow-indigo-500/20"
             >
-              Sign In / Profile
+              Sign In
             </button>
           )}
 
           {stage !== 'setup' && (
             <button
               onClick={restart}
-              className="px-3.5 py-1.5 text-xs font-medium text-zinc-400 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg transition-all flex items-center space-x-1.5"
+              className="px-2.5 py-1.5 text-xs font-medium text-zinc-400 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 rounded-lg transition-all flex items-center space-x-1"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.213 6H16" />
@@ -250,13 +254,13 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Right Column: Setup Card OR Sign-In Gate */}
+            {/* Right Column: Dynamic Form / Auth Gate */}
             <div className="lg:col-span-5">
               {user ? (
-                /* Authenticated */
+                /* Authenticated User: Start Interview Form */
                 <div className="glass-card rounded-2xl p-6 md:p-8 border border-zinc-800 shadow-2xl">
-                  <div className="flex items-center space-x-3 mb-5 pb-4 border-b border-zinc-800/60">
-                    <div className="h-10 w-10 rounded-full bg-indigo-600 overflow-hidden flex items-center justify-center text-sm font-bold text-white border-2 border-indigo-400 shadow-md shadow-indigo-500/20">
+                  <div className="flex items-center space-x-3 mb-6 pb-4 border-b border-zinc-800/60">
+                    <div className="h-12 w-12 rounded-xl bg-indigo-600 overflow-hidden flex items-center justify-center text-base font-bold text-white shadow-md shadow-indigo-500/20">
                       {user.avatarUrl ? (
                         <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" />
                       ) : (
@@ -264,88 +268,48 @@ export default function Home() {
                       )}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-zinc-100">{user.fullName}</p>
-                      <p className="text-[11px] text-zinc-500">{user.email} &bull; {user.targetRole}</p>
+                      <h2 className="text-base font-bold text-zinc-100 font-outfit">
+                        Ready, {user.fullName.split(' ')[0]}?
+                      </h2>
+                      <p className="text-xs text-indigo-400 font-medium">{user.targetRole || 'Backend Engineer'}</p>
                     </div>
                   </div>
-
-                  <div className="mb-5">
-                    <h2 className="text-xl font-semibold tracking-tight text-zinc-100 font-outfit">
-                      Launch Interview Session
-                    </h2>
-                    <p className="text-xs text-zinc-400 mt-1">
-                      Ready to begin? Your answers will be safely preserved and evaluated.
-                    </p>
-                  </div>
-
-                  {error && (
-                    <div className="mb-5 p-3 rounded-lg bg-red-950/40 border border-red-800/50 text-red-400 text-xs flex items-start space-x-2 animate-fade-in">
-                      <svg className="w-4 h-4 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                      </svg>
-                      <span>{error}</span>
-                    </div>
-                  )}
 
                   <form onSubmit={handleStart} className="space-y-4">
                     <div>
-                      <label htmlFor="name" className="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
-                        Candidate Full Name
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
+                        Confirm Your Name
                       </label>
                       <input
                         type="text"
-                        id="name"
                         value={formName}
                         onChange={(e) => setFormName(e.target.value)}
-                        placeholder="e.g. Sarah Connor"
-                        required
-                        disabled={isLoading}
-                        className="w-full px-4 py-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none text-zinc-200 placeholder-zinc-600 transition-all text-sm"
+                        placeholder="Your full name"
+                        className="w-full px-4 py-2.5 bg-zinc-900/60 border border-zinc-800 rounded-lg text-sm text-zinc-200 focus:outline-none focus:border-indigo-500 transition-colors"
                       />
                     </div>
 
                     <div>
-                      <label htmlFor="candidateId" className="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
-                        Candidate ID / Email
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
+                        Candidate Email / Identifier
                       </label>
                       <input
                         type="text"
-                        id="candidateId"
                         value={formId}
                         onChange={(e) => setFormId(e.target.value)}
-                        placeholder="e.g. sarah.c@example.com"
-                        required
-                        disabled={isLoading}
-                        className="w-full px-4 py-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none text-zinc-200 placeholder-zinc-600 transition-all text-sm"
+                        placeholder="your.email@example.com"
+                        className="w-full px-4 py-2.5 bg-zinc-900/60 border border-zinc-800 rounded-lg text-sm text-zinc-200 focus:outline-none focus:border-indigo-500 transition-colors"
                       />
-                    </div>
-
-                    <div className="p-3 bg-zinc-900/50 border border-zinc-800/80 rounded-xl flex items-center justify-between text-xs">
-                      <div className="flex items-center space-x-2">
-                        <svg className="w-4 h-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        <span className="text-zinc-300 font-medium">
-                          {user.resumeFileName ? `Resume: ${user.resumeFileName}` : 'No resume attached'}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setIsProfileOpen(true)}
-                        className="text-indigo-400 hover:text-indigo-300 font-medium"
-                      >
-                        Edit Profile
-                      </button>
                     </div>
 
                     <button
                       type="submit"
                       disabled={isLoading}
-                      className="w-full mt-4 py-3 rounded-lg bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-medium text-sm transition-all flex items-center justify-center shadow-lg shadow-indigo-500/20 active:scale-[0.99] disabled:opacity-50 font-sans"
+                      className="w-full mt-2 py-3.5 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-semibold text-sm transition-all flex items-center justify-center shadow-lg shadow-indigo-500/20 active:scale-[0.99] disabled:opacity-50"
                     >
                       {isLoading ? (
                         <>
-                          <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                          <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                           </svg>
@@ -373,44 +337,6 @@ export default function Home() {
                     Create your candidate profile to begin a proctored interview session. Upload your resume and set up your webcam for the AI proctoring guard.
                   </p>
 
-                  <div className="space-y-3 text-left mb-6">
-                    <div className="flex items-center space-x-3 p-3 bg-zinc-900/50 border border-zinc-800/80 rounded-xl">
-                      <div className="h-8 w-8 rounded-lg bg-indigo-950/60 border border-indigo-900/50 flex items-center justify-center text-indigo-400 shrink-0">
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-zinc-200">Create Candidate Profile</p>
-                        <p className="text-[11px] text-zinc-500">Name, target role, photo &amp; resume</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center space-x-3 p-3 bg-zinc-900/50 border border-zinc-800/80 rounded-xl">
-                      <div className="h-8 w-8 rounded-lg bg-violet-950/60 border border-violet-900/50 flex items-center justify-center text-violet-400 shrink-0">
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-zinc-200">Enable AI Proctoring</p>
-                        <p className="text-[11px] text-zinc-500">Webcam eye-tracking verification</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center space-x-3 p-3 bg-zinc-900/50 border border-zinc-800/80 rounded-xl">
-                      <div className="h-8 w-8 rounded-lg bg-emerald-950/60 border border-emerald-900/50 flex items-center justify-center text-emerald-400 shrink-0">
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-zinc-200">Get Evaluated &amp; Scored</p>
-                        <p className="text-[11px] text-zinc-500">Multi-dimensional assessment report</p>
-                      </div>
-                    </div>
-                  </div>
-
                   <button
                     onClick={() => setIsAuthOpen(true)}
                     className="w-full py-3 rounded-lg bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-semibold text-sm transition-all flex items-center justify-center shadow-lg shadow-indigo-500/20 active:scale-[0.99]"
@@ -427,12 +353,12 @@ export default function Home() {
         </section>
       )}
 
-      {/* STAGE 2: ACTIVE CONVERSATIONAL CHAT */}
+      {/* STAGE 2: ACTIVE CONVERSATIONAL CHAT - VIEWPORT FITTED */}
       {stage === 'chat' && (
-        <section className="relative z-10 w-full max-w-7xl flex-grow grid grid-cols-1 lg:grid-cols-12 gap-6 animate-slide-up pb-6">
+        <section className="flex-1 min-h-0 w-full max-w-[1500px] p-2.5 md:p-3.5 grid grid-cols-1 lg:grid-cols-[270px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)] gap-3 overflow-hidden animate-slide-up">
           {/* Left Sidebar (Proctoring Feed, Context & Progress) */}
-          <div className="lg:col-span-4 xl:col-span-3 flex flex-col space-y-4">
-            {/* Live Proctoring Webcam - Docked in Sidebar */}
+          <div className="flex flex-col gap-2 h-full min-h-0 overflow-y-auto lg:overflow-visible shrink-0">
+            {/* Live Proctoring Webcam - Compact Height ~170px */}
             <ProctoringCam
               sessionId={sessionId || 'session'}
               isActive={stage === 'chat'}
@@ -440,62 +366,62 @@ export default function Home() {
               onWarningTriggered={(count) => setProctoringWarnings(count)}
             />
 
-            {/* Session Context Card */}
-            <div className="glass-card rounded-2xl p-4 flex flex-col space-y-3 border border-zinc-800 bg-zinc-950/60 shadow-lg">
+            {/* Session Context Card - Compact Height ~115px */}
+            <div className="glass-card rounded-xl p-2.5 border border-zinc-800 bg-zinc-950/80 shadow-sm flex flex-col gap-1 shrink-0">
               <div className="flex items-center justify-between">
-                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 font-outfit">Session Context</h3>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-950/80 border border-indigo-900/60 text-indigo-400 font-mono">
-                  Live Session
+                <h3 className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 font-outfit">Session Context</h3>
+                <span className="text-[9px] px-1.5 py-0.2 rounded bg-indigo-950/80 border border-indigo-900/60 text-indigo-400 font-mono">
+                  Live
                 </span>
               </div>
               
-              <div>
-                <p className="text-[11px] text-zinc-500">Candidate Name</p>
-                <p className="text-sm font-semibold text-zinc-100 truncate">{candidateName}</p>
+              <div className="mt-0.5">
+                <p className="text-[10px] text-zinc-500">Candidate</p>
+                <p className="text-xs font-semibold text-zinc-100 truncate">{candidateName}</p>
               </div>
 
               <div>
-                <p className="text-[11px] text-zinc-500">Current Topic</p>
-                <span className="inline-block mt-1 px-2.5 py-1 text-xs font-medium text-indigo-400 bg-indigo-950/50 border border-indigo-900/60 rounded-lg font-outfit">
+                <p className="text-[10px] text-zinc-500">Topic</p>
+                <span className="inline-block mt-0.5 px-2 py-0.5 text-[11px] font-medium text-indigo-400 bg-indigo-950/50 border border-indigo-900/60 rounded font-outfit truncate max-w-full">
                   {currentTopic}
                 </span>
               </div>
 
-              <div className="pt-2.5 border-t border-zinc-850 flex items-center justify-between text-xs">
-                <span className="text-zinc-500 text-[11px]">Target Role</span>
-                <span className="font-medium text-zinc-300 text-[11px]">{user?.targetRole || 'Backend Engineer'}</span>
+              <div className="pt-1.5 mt-0.5 border-t border-zinc-850 flex items-center justify-between text-[10px]">
+                <span className="text-zinc-500">Target Role</span>
+                <span className="font-medium text-zinc-300 truncate max-w-[130px]">{user?.targetRole || 'Backend Engineer'}</span>
               </div>
             </div>
 
-            {/* Live Progress & Adaptive Status Card */}
-            <div className="glass-card rounded-2xl p-4 flex flex-col space-y-3 border border-zinc-800 bg-zinc-950/60 shadow-lg">
+            {/* Live Progress & Adaptive Status Card - Compact Height ~110px */}
+            <div className="glass-card rounded-xl p-2.5 border border-zinc-800 bg-zinc-950/80 shadow-sm flex flex-col gap-1 shrink-0">
               <div className="flex justify-between items-center">
-                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 font-outfit">Progress</h3>
-                <span className="text-xs font-mono font-semibold text-indigo-400 bg-indigo-950/60 px-2 py-0.5 rounded border border-indigo-900/40">
-                  Question {Math.min(questionIndex, totalQuestions)} of {totalQuestions}
+                <h3 className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 font-outfit">Progress</h3>
+                <span className="text-[10px] font-mono font-semibold text-indigo-400 bg-indigo-950/60 px-1.5 py-0.2 rounded border border-indigo-900/40">
+                  Q{Math.min(questionIndex, totalQuestions)} of {totalQuestions}
                 </span>
               </div>
 
               {/* Dot-stepper Progress Indicator */}
-              <div className="flex items-center justify-between py-2 px-1">
+              <div className="flex items-center justify-between py-1 px-0.5">
                 {Array.from({ length: totalQuestions }).map((_, idx) => {
                   const isPassed = idx < questionIndex - 1;
                   const isCurrent = idx === questionIndex - 1;
                   return (
                     <React.Fragment key={idx}>
                       <div
-                        className={`h-3 w-3 rounded-full flex items-center justify-center transition-all duration-300 ${
+                        className={`h-2.5 w-2.5 rounded-full flex items-center justify-center transition-all duration-300 ${
                           isPassed
-                            ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]'
+                            ? 'bg-emerald-500 shadow-[0_0_6px_#10b981]'
                             : isCurrent
-                            ? 'bg-indigo-500 ring-4 ring-indigo-500/20 shadow-[0_0_10px_#6366f1] animate-pulse'
+                            ? 'bg-indigo-500 ring-2 ring-indigo-500/30 shadow-[0_0_8px_#6366f1] animate-pulse'
                             : 'bg-zinc-850 border border-zinc-700'
                         }`}
                         title={`Question ${idx + 1}`}
                       />
                       {idx < totalQuestions - 1 && (
                         <div
-                          className={`h-0.5 flex-1 mx-1 transition-colors duration-300 ${
+                          className={`h-0.5 flex-1 mx-0.5 transition-colors duration-300 ${
                             idx < questionIndex - 1 ? 'bg-emerald-500' : 'bg-zinc-850'
                           }`}
                         />
@@ -506,30 +432,30 @@ export default function Home() {
               </div>
 
               {/* Subtle Evaluation Status Badge */}
-              <div className="pt-2 border-t border-zinc-850 flex items-center justify-between text-xs">
-                <span className="text-zinc-400 text-[11px]">AI Evaluation Guard</span>
+              <div className="pt-1.5 mt-0.5 border-t border-zinc-850 flex items-center justify-between text-[10px]">
+                <span className="text-zinc-400">AI Guard</span>
                 {evaluationState === 'processing' ? (
-                  <span className="text-violet-400 font-medium flex items-center space-x-1.5 animate-pulse text-[11px]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-violet-400" />
-                    <span>Analyzing ●</span>
+                  <span className="text-violet-400 font-medium flex items-center space-x-1 animate-pulse">
+                    <span className="h-1 w-1 rounded-full bg-violet-400" />
+                    <span>Evaluating ●</span>
                   </span>
                 ) : (
-                  <span className="text-emerald-400 font-medium flex items-center space-x-1.5 text-[11px]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                    <span>Evaluation Ready</span>
+                  <span className="text-emerald-400 font-medium flex items-center space-x-1">
+                    <span className="h-1 w-1 rounded-full bg-emerald-400" />
+                    <span>Ready</span>
                   </span>
                 )}
               </div>
 
               {/* Proctoring Warning Badge */}
-              <div className="pt-2 border-t border-zinc-850 flex justify-between items-center text-xs">
-                <span className="text-zinc-400 text-[11px]">Eye &amp; Face Integrity</span>
+              <div className="pt-1 border-t border-zinc-850 flex justify-between items-center text-[10px]">
+                <span className="text-zinc-400">Integrity</span>
                 {proctoringWarnings > 0 ? (
-                  <span className="text-red-400 font-bold font-mono text-[11px]">
-                    ⚠️ {proctoringWarnings} Warning{proctoringWarnings > 1 ? 's' : ''}
+                  <span className="text-red-400 font-bold font-mono">
+                    ⚠️ {proctoringWarnings} Alert{proctoringWarnings > 1 ? 's' : ''}
                   </span>
                 ) : (
-                  <span className="text-emerald-400 font-medium text-[11px]">✓ 100% Clean</span>
+                  <span className="text-emerald-400 font-medium">✓ Clean</span>
                 )}
               </div>
             </div>
@@ -538,31 +464,31 @@ export default function Home() {
             {isFinished && (
               <button
                 onClick={requestReport}
-                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold text-xs tracking-wide uppercase transition-all flex items-center justify-center shadow-lg shadow-emerald-500/20 active:scale-[0.99] animate-fade-in"
+                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold text-[11px] tracking-wider uppercase transition-all flex items-center justify-center shadow-lg shadow-emerald-500/20 active:scale-[0.99] animate-fade-in shrink-0"
               >
-                <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span>View Final Evaluation Report</span>
+                <span>View Final Report</span>
               </button>
             )}
           </div>
 
           {/* Right Main Stage (Chat & Response Console) */}
-          <div className="lg:col-span-8 xl:col-span-9 glass-card rounded-2xl flex flex-col h-[72vh] md:h-[76vh] overflow-hidden border border-zinc-800 bg-zinc-950/60 shadow-2xl">
+          <div className="flex flex-col h-full min-h-0 glass-card rounded-xl border border-zinc-800 bg-zinc-950/60 overflow-hidden shadow-xl">
             {/* Chat Header */}
-            <div className="px-6 py-3.5 border-b border-zinc-800/80 bg-zinc-900/60 backdrop-blur-md flex items-center justify-between">
-              <div className="flex items-center space-x-2.5">
-                <div className={`h-2.5 w-2.5 rounded-full ${isFinished ? 'bg-emerald-500' : 'bg-indigo-500 animate-ping'}`} />
-                <h3 className="font-semibold text-sm text-zinc-100 font-outfit">
+            <div className="px-4 py-2 border-b border-zinc-800/80 bg-zinc-900/60 backdrop-blur-md flex items-center justify-between shrink-0">
+              <div className="flex items-center space-x-2">
+                <div className={`h-2 w-2 rounded-full ${isFinished ? 'bg-emerald-500' : 'bg-indigo-500 animate-ping'}`} />
+                <h3 className="font-semibold text-xs text-zinc-100 font-outfit">
                   {isFinished ? 'Interview Session Complete' : 'Active Technical Interview Dialogue'}
                 </h3>
               </div>
 
               {/* Submission State Banner */}
               {submissionState === 'saving' && (
-                <span className="text-xs text-indigo-400 font-medium flex items-center space-x-1.5 bg-indigo-950/60 px-2.5 py-1 rounded-full border border-indigo-900/50 animate-pulse">
-                  <svg className="animate-spin h-3 w-3 text-indigo-400" fill="none" viewBox="0 0 24 24">
+                <span className="text-[11px] text-indigo-400 font-medium flex items-center space-x-1.5 bg-indigo-950/60 px-2 py-0.5 rounded-full border border-indigo-900/50 animate-pulse">
+                  <svg className="animate-spin h-2.5 w-2.5 text-indigo-400" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
@@ -571,38 +497,38 @@ export default function Home() {
               )}
 
               {submissionState === 'saved' && (
-                <span className="text-xs text-emerald-400 font-medium flex items-center space-x-1 bg-emerald-950/50 px-2.5 py-1 rounded-full border border-emerald-900/40 animate-fade-in">
-                  <span>✓ Answer saved</span>
+                <span className="text-[11px] text-emerald-400 font-medium flex items-center space-x-1 bg-emerald-950/50 px-2 py-0.5 rounded-full border border-emerald-900/40 animate-fade-in">
+                  <span>✓ Saved</span>
                 </span>
               )}
             </div>
 
             {/* Chat Dialogue Stream */}
-            <div className="flex-grow overflow-y-auto p-6 space-y-5 custom-scrollbar bg-zinc-950/40">
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3.5 custom-scrollbar bg-zinc-950/40">
               {dialogue.map((msg) => (
                 <div
                   key={msg.id}
                   className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
                 >
-                  <div className="flex items-start space-x-3 max-w-[90%] md:max-w-[80%]">
+                  <div className="flex items-start space-x-2.5 max-w-[92%] md:max-w-[85%]">
                     {msg.role === 'agent' && (
-                      <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center shrink-0 mt-0.5 shadow-md shadow-indigo-500/20 text-white">
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <div className="h-7 w-7 rounded-lg bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center shrink-0 mt-0.5 shadow-md shadow-indigo-500/20 text-white">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                         </svg>
                       </div>
                     )}
                     <div className="flex flex-col">
                       {msg.role === 'agent' && (
-                        <div className="flex items-center space-x-2 mb-1.5 px-1">
-                          <span className="text-xs font-semibold text-zinc-200 font-outfit">
+                        <div className="flex items-center space-x-2 mb-1 px-0.5">
+                          <span className="text-[11px] font-semibold text-zinc-200 font-outfit">
                             AI Technical Interviewer
                           </span>
-                          <span className="text-[10px] text-zinc-500">&bull; Evaluation Engine</span>
+                          <span className="text-[9px] text-zinc-500">&bull; Evaluation Engine</span>
                           <button
                             type="button"
                             onClick={() => playQuestionAudio(msg.text)}
-                            className="ml-2 text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center space-x-1 px-2 py-0.5 rounded-md bg-indigo-950/60 border border-indigo-900/60 transition-all hover:bg-indigo-900/40"
+                            className="ml-1.5 text-[10px] text-indigo-400 hover:text-indigo-300 flex items-center space-x-1 px-1.5 py-0.5 rounded bg-indigo-950/60 border border-indigo-900/60 transition-all hover:bg-indigo-900/40"
                             title="Play Question Audio"
                           >
                             <span>{isPlayingAudio ? '⏹ Stop Audio' : '🔊 Listen Question'}</span>
@@ -611,16 +537,16 @@ export default function Home() {
                       )}
 
                       <div
-                        className={`rounded-2xl px-4 py-3.5 text-sm ${
+                        className={`rounded-xl px-3.5 py-2.5 text-xs md:text-sm ${
                           msg.role === 'user'
-                            ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-tr-none shadow-lg shadow-indigo-500/10'
-                            : 'bg-zinc-900/90 border border-zinc-800 text-zinc-100 rounded-tl-none font-normal shadow-md'
+                            ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-tr-none shadow-md shadow-indigo-500/10'
+                            : 'bg-zinc-900/90 border border-zinc-800 text-zinc-100 rounded-tl-none font-normal shadow-sm'
                         }`}
                       >
                         <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
                       </div>
 
-                      <span className="text-[10px] text-zinc-500 mt-1 self-end px-1 font-mono">
+                      <span className="text-[9px] text-zinc-500 mt-0.5 self-end px-1 font-mono">
                         {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
@@ -630,16 +556,16 @@ export default function Home() {
 
               {isTyping && (
                 <div className="flex justify-start animate-fade-in">
-                  <div className="flex items-start space-x-3">
-                    <div className="h-9 w-9 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0 mt-0.5">
-                      <svg className="w-5 h-5 text-indigo-400 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div className="flex items-start space-x-2.5">
+                    <div className="h-7 w-7 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0 mt-0.5">
+                      <svg className="w-4 h-4 text-indigo-400 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                       </svg>
                     </div>
-                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl rounded-tl-none px-4 py-3.5 flex space-x-1.5 items-center">
-                      <span className="h-2 w-2 bg-indigo-400 rounded-full typing-dot" />
-                      <span className="h-2 w-2 bg-indigo-400 rounded-full typing-dot" />
-                      <span className="h-2 w-2 bg-indigo-400 rounded-full typing-dot" />
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-xl rounded-tl-none px-3.5 py-2.5 flex space-x-1.5 items-center">
+                      <span className="h-1.5 w-1.5 bg-indigo-400 rounded-full typing-dot" />
+                      <span className="h-1.5 w-1.5 bg-indigo-400 rounded-full typing-dot" />
+                      <span className="h-1.5 w-1.5 bg-indigo-400 rounded-full typing-dot" />
                     </div>
                   </div>
                 </div>
@@ -649,32 +575,32 @@ export default function Home() {
 
             {/* Error banner with retry */}
             {error && (
-              <div className="px-6 py-2 bg-red-950/80 border-t border-red-800/50 flex items-center justify-between text-xs text-red-300">
+              <div className="px-4 py-1.5 bg-red-950/80 border-t border-red-800/50 flex items-center justify-between text-xs text-red-300 shrink-0">
                 <span>{error}</span>
                 <button
                   onClick={() => handleSend()}
-                  className="px-2.5 py-1 text-[11px] font-semibold text-white bg-red-800 hover:bg-red-700 rounded-md transition-all"
+                  className="px-2 py-0.5 text-[10px] font-semibold text-white bg-red-800 hover:bg-red-700 rounded transition-all"
                 >
                   Retry Submission
                 </button>
               </div>
             )}
 
-            {/* Unobstructed Answer Composer */}
-            <form onSubmit={handleSend} className="p-4 border-t border-zinc-800/80 bg-zinc-900/50 backdrop-blur-md flex items-end space-x-3">
-              <div className="flex-grow relative">
+            {/* Compact Unobstructed Answer Composer */}
+            <form onSubmit={handleSend} className="shrink-0 p-2.5 md:p-3 border-t border-zinc-800/80 bg-zinc-900/60 backdrop-blur-md flex items-end gap-2">
+              <div className="flex-1 min-w-0 relative">
                 <textarea
                   value={draftText}
                   onChange={(e) => setDraftText(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder={
                     isFinished
-                      ? 'Interview complete! Click "View Final Evaluation Report" to review your assessment.'
-                      : 'Type your comprehensive response... (Press Enter to submit, Shift+Enter for newline)'
+                      ? 'Interview complete! Click "View Final Report" to review your assessment.'
+                      : 'Type your response... (Press Enter to submit, Shift+Enter for newline)'
                   }
                   disabled={isTyping || isFinished || submissionState === 'saving'}
                   rows={2}
-                  className="w-full bg-zinc-950 border border-zinc-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none rounded-xl py-3 pl-4 pr-12 text-sm text-zinc-200 placeholder-zinc-500 resize-none custom-scrollbar transition-all disabled:opacity-50 shadow-inner"
+                  className="w-full bg-zinc-950 border border-zinc-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none rounded-lg py-2 pl-3 pr-9 text-xs text-zinc-200 placeholder-zinc-500 resize-none custom-scrollbar transition-all disabled:opacity-50 shadow-inner h-[54px]"
                 />
 
                 {/* Voice Input icon button */}
@@ -682,10 +608,10 @@ export default function Home() {
                   type="button"
                   aria-label="Voice input"
                   onClick={() => alert("Voice transcription ready. Speak your answer or type directly.")}
-                  className="absolute right-3.5 top-3.5 text-zinc-400 hover:text-indigo-400 transition-colors p-1"
+                  className="absolute right-2.5 top-2.5 text-zinc-400 hover:text-indigo-400 transition-colors p-0.5"
                   title="Voice Input"
                 >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                   </svg>
                 </button>
@@ -695,9 +621,9 @@ export default function Home() {
                 type="submit"
                 disabled={!draftText.trim() || isTyping || isFinished || submissionState === 'saving'}
                 aria-label="Submit answer"
-                className="h-11 w-12 shrink-0 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white rounded-xl transition-all flex items-center justify-center shadow-lg shadow-indigo-500/20 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
+                className="h-[54px] w-12 shrink-0 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white rounded-lg transition-all flex items-center justify-center shadow-md shadow-indigo-500/20 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
               >
-                <svg className="w-5 h-5 transform rotate-90 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-4 h-4 transform rotate-90 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                 </svg>
               </button>

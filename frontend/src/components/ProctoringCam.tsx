@@ -37,7 +37,7 @@ export const ProctoringCam: React.FC<ProctoringCamProps> = ({
     try {
       if (typeof navigator !== 'undefined' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         const mediaStream = await navigator.mediaDevices.getUserMedia({
-          video: { width: 480, height: 360, frameRate: 24 },
+          video: { width: 320, height: 240, frameRate: 20 },
           audio: false,
         });
         setStream(mediaStream);
@@ -92,19 +92,19 @@ export const ProctoringCam: React.FC<ProctoringCamProps> = ({
     const render = () => {
       if (!ctx) return;
       t += 0.04;
-      ctx.fillStyle = '#0f111a';
+      ctx.fillStyle = '#0a0d14';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       // Subtle background grid
-      ctx.strokeStyle = '#1e2438';
+      ctx.strokeStyle = '#181e2e';
       ctx.lineWidth = 1;
-      for (let x = 0; x < canvas.width; x += 24) {
+      for (let x = 0; x < canvas.width; x += 20) {
         ctx.beginPath();
         ctx.moveTo(x, 0);
         ctx.lineTo(x, canvas.height);
         ctx.stroke();
       }
-      for (let y = 0; y < canvas.height; y += 24) {
+      for (let y = 0; y < canvas.height; y += 20) {
         ctx.beginPath();
         ctx.moveTo(0, y);
         ctx.lineTo(canvas.width, y);
@@ -112,54 +112,54 @@ export const ProctoringCam: React.FC<ProctoringCamProps> = ({
       }
 
       // Head silhouette
-      const cx = canvas.width / 2 + Math.sin(t * 0.5) * 4;
-      const cy = canvas.height / 2 + 10 + Math.cos(t * 0.8) * 2;
+      const cx = canvas.width / 2 + Math.sin(t * 0.5) * 3;
+      const cy = canvas.height / 2 + 6 + Math.cos(t * 0.8) * 2;
 
       // Glow behind head
-      const grad = ctx.createRadialGradient(cx, cy, 10, cx, cy, 70);
+      const grad = ctx.createRadialGradient(cx, cy, 10, cx, cy, 55);
       grad.addColorStop(0, 'rgba(99, 102, 241, 0.25)');
       grad.addColorStop(1, 'rgba(99, 102, 241, 0)');
       ctx.fillStyle = grad;
       ctx.beginPath();
-      ctx.arc(cx, cy, 70, 0, Math.PI * 2);
+      ctx.arc(cx, cy, 55, 0, Math.PI * 2);
       ctx.fill();
 
       // Head shape
       ctx.fillStyle = '#1e1b4b';
       ctx.strokeStyle = '#6366f1';
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.ellipse(cx, cy - 10, 32, 42, 0, 0, Math.PI * 2);
+      ctx.ellipse(cx, cy - 8, 26, 34, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
       // Shoulders
       ctx.beginPath();
-      ctx.ellipse(cx, cy + 56, 60, 24, 0, 0, Math.PI * 2);
+      ctx.ellipse(cx, cy + 46, 50, 20, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
       // Eye landmarks
-      const eyeDx = Math.sin(t * 0.7) * 2;
+      const eyeDx = Math.sin(t * 0.7) * 1.5;
       ctx.fillStyle = '#818cf8';
       ctx.beginPath();
-      ctx.arc(cx - 12 + eyeDx, cy - 14, 3.5, 0, Math.PI * 2);
-      ctx.arc(cx + 12 + eyeDx, cy - 14, 3.5, 0, Math.PI * 2);
+      ctx.arc(cx - 10 + eyeDx, cy - 11, 2.5, 0, Math.PI * 2);
+      ctx.arc(cx + 10 + eyeDx, cy - 11, 2.5, 0, Math.PI * 2);
       ctx.fill();
 
       // AI Facial Mesh overlay dots
       ctx.fillStyle = '#a5b4fc';
       const meshPoints = [
-        [cx, cy - 28],
-        [cx - 20, cy - 10],
-        [cx + 20, cy - 10],
-        [cx - 10, cy + 10],
-        [cx + 10, cy + 10],
-        [cx, cy + 20],
+        [cx, cy - 22],
+        [cx - 16, cy - 8],
+        [cx + 16, cy - 8],
+        [cx - 8, cy + 8],
+        [cx + 8, cy + 8],
+        [cx, cy + 16],
       ];
       meshPoints.forEach(([px, py]) => {
         ctx.beginPath();
-        ctx.arc(px, py, 1.5, 0, Math.PI * 2);
+        ctx.arc(px, py, 1.2, 0, Math.PI * 2);
         ctx.fill();
       });
 
@@ -249,53 +249,53 @@ export const ProctoringCam: React.FC<ProctoringCamProps> = ({
   if (!isActive) return null;
 
   return (
-    <div className={`flex flex-col space-y-2.5 ${className}`}>
+    <div className={`flex flex-col shrink-0 ${className}`}>
       {/* Top Floating Alert Banner if Warning is active */}
       {activeWarning && (
         <div
           role="alert"
           aria-live="assertive"
-          className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50 p-3.5 rounded-xl bg-red-950/95 border border-red-500 text-red-200 text-xs font-semibold flex items-center space-x-2.5 shadow-2xl animate-bounce backdrop-blur-md max-w-md"
+          className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 p-2.5 px-4 rounded-xl bg-red-950/95 border border-red-500 text-red-200 text-xs font-semibold flex items-center space-x-2 shadow-2xl animate-bounce backdrop-blur-md max-w-md"
         >
-          <div className="h-3 w-3 rounded-full bg-red-500 animate-ping shrink-0" />
+          <div className="h-2.5 w-2.5 rounded-full bg-red-500 animate-ping shrink-0" />
           <span>{activeWarning}</span>
         </div>
       )}
 
-      {/* Docked Proctoring Module Card */}
-      <div className="glass-card rounded-2xl p-3 border border-zinc-800 shadow-xl overflow-hidden bg-zinc-950/80">
+      {/* Compact Docked Proctoring Module Card */}
+      <div className="glass-card rounded-xl p-2.5 border border-zinc-800 shadow-md overflow-hidden bg-zinc-950/80">
         {/* Module Header with Live Status */}
-        <div className="flex items-center justify-between px-1 py-1 mb-2 border-b border-zinc-800/60">
-          <div className="flex items-center space-x-2">
-            <span className="flex items-center space-x-1.5 text-[11px] font-semibold tracking-wide uppercase">
+        <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-zinc-850">
+          <div className="flex items-center space-x-1.5">
+            <span className="flex items-center space-x-1.5 text-[10px] font-semibold tracking-wider uppercase">
               {hasPermission ? (
                 <>
-                  <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-emerald-400">AI Proctor Live</span>
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-emerald-400">Proctor Live</span>
                 </>
               ) : (
                 <>
-                  <span className="h-2 w-2 rounded-full bg-amber-400" />
-                  <span className="text-zinc-400">Camera Paused</span>
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                  <span className="text-zinc-400">Cam Standby</span>
                 </>
               )}
             </span>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-zinc-900 border border-zinc-800 text-zinc-300">
-              {integrityScore}% Integrity
+          <div className="flex items-center space-x-1.5">
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300">
+              {integrityScore}%
             </span>
             {warningCount > 0 && (
-              <span className="px-2 py-0.5 text-[10px] font-bold text-red-400 bg-red-950/80 border border-red-800 rounded-full font-mono">
-                {warningCount} ⚠️
+              <span className="px-1.5 py-0.5 text-[9px] font-bold text-red-400 bg-red-950/80 border border-red-800 rounded-full font-mono">
+                {warningCount}⚠️
               </span>
             )}
           </div>
         </div>
 
-        {/* Video / Canvas Stream Viewport */}
-        <div className="relative w-full aspect-video rounded-xl bg-zinc-950 overflow-hidden border border-zinc-850 flex items-center justify-center shadow-inner">
+        {/* Video / Canvas Stream Viewport - Compact Height ~105px */}
+        <div className="relative w-full h-28 rounded-lg bg-zinc-950 overflow-hidden border border-zinc-850 flex items-center justify-center shadow-inner">
           {/* Hardware Webcam Video */}
           {hasPermission && !isSimulated && (
             <video
@@ -311,8 +311,8 @@ export const ProctoringCam: React.FC<ProctoringCamProps> = ({
           {hasPermission && isSimulated && (
             <canvas
               ref={animCanvasRef}
-              width={320}
-              height={240}
+              width={280}
+              height={180}
               className="w-full h-full object-cover"
             />
           )}
@@ -321,36 +321,31 @@ export const ProctoringCam: React.FC<ProctoringCamProps> = ({
 
           {/* Camera Permission Request / Fallback UI */}
           {hasPermission === false && (
-            <div className="p-4 text-center text-xs text-zinc-400 space-y-2.5 flex flex-col items-center justify-center">
-              <div className="h-8 w-8 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <p className="text-[11px] text-zinc-300 font-medium leading-snug">
-                Camera access restricted or browser permission needed
+            <div className="p-2 text-center text-xs text-zinc-400 space-y-1.5 flex flex-col items-center justify-center">
+              <p className="text-[10px] text-zinc-300 font-medium">
+                Camera access required
               </p>
-              <div className="flex items-center space-x-2 pt-1">
+              <div className="flex items-center space-x-1.5">
                 <button
                   onClick={initCamera}
-                  className="px-3 py-1.5 text-[11px] font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shadow-md shadow-indigo-600/20 transition-all active:scale-95"
+                  className="px-2 py-1 text-[10px] font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded shadow transition-all active:scale-95"
                 >
-                  Enable Camera
+                  Allow Cam
                 </button>
                 <button
                   onClick={startSimulatedFeed}
-                  className="px-2.5 py-1.5 text-[11px] font-medium text-zinc-300 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 rounded-lg transition-all"
+                  className="px-2 py-1 text-[10px] font-medium text-zinc-300 bg-zinc-900 hover:bg-zinc-800 border border-zinc-750 rounded transition-all"
                 >
-                  Simulate Feed
+                  Simulate
                 </button>
               </div>
             </div>
           )}
 
           {hasPermission === null && (
-            <div className="flex flex-col items-center justify-center space-y-2 text-xs text-zinc-400">
-              <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-              <span className="text-[11px] font-mono">Initializing camera feed...</span>
+            <div className="flex flex-col items-center justify-center space-y-1 text-xs text-zinc-400">
+              <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+              <span className="text-[9px] font-mono">Connecting...</span>
             </div>
           )}
 
@@ -358,15 +353,15 @@ export const ProctoringCam: React.FC<ProctoringCamProps> = ({
           {hasPermission && (
             <>
               {/* Scanline Effect */}
-              <div className="absolute inset-0 pointer-events-none border border-indigo-500/30 rounded-xl">
-                <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-indigo-400 to-transparent shadow-[0_0_8px_#6366f1] animate-pulse" />
+              <div className="absolute inset-0 pointer-events-none border border-indigo-500/20 rounded-lg">
+                <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-indigo-400 to-transparent shadow-[0_0_6px_#6366f1] animate-pulse" />
               </div>
 
               {/* Bottom HUD bar */}
-              <div className="absolute bottom-2 left-2 right-2 px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-between text-[10px] text-zinc-300">
-                <span className="flex items-center space-x-1.5">
+              <div className="absolute bottom-1.5 left-1.5 right-1.5 px-2 py-0.5 rounded bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-between text-[9px] text-zinc-300">
+                <span className="flex items-center space-x-1">
                   <span className={`h-1.5 w-1.5 rounded-full ${gazeStatus === 'centered' ? 'bg-emerald-400' : 'bg-amber-400 animate-ping'}`} />
-                  <span>{gazeStatus === 'centered' ? 'Gaze: Centered' : 'Gaze: Deviated'}</span>
+                  <span>{gazeStatus === 'centered' ? 'Gaze Centered' : 'Deviated'}</span>
                 </span>
 
                 {/* Audio Mic Level Meters */}
@@ -374,8 +369,8 @@ export const ProctoringCam: React.FC<ProctoringCamProps> = ({
                   {[1, 2, 3, 4, 5].map((lvl) => (
                     <div
                       key={lvl}
-                      className={`w-1 rounded-full transition-all duration-150 ${
-                        lvl <= micLevel ? 'bg-emerald-400 h-2.5' : 'bg-zinc-700 h-1.5'
+                      className={`w-0.5 rounded-full transition-all duration-150 ${
+                        lvl <= micLevel ? 'bg-emerald-400 h-2' : 'bg-zinc-700 h-1'
                       }`}
                     />
                   ))}
@@ -386,10 +381,10 @@ export const ProctoringCam: React.FC<ProctoringCamProps> = ({
         </div>
 
         {/* Candidate Identifier footer */}
-        <div className="mt-2 pt-2 border-t border-zinc-850 flex items-center justify-between text-[11px] text-zinc-400 px-1">
-          <div className="flex items-center space-x-1.5">
-            <span className="h-1.5 w-1.5 rounded-full bg-indigo-400" />
-            <span className="font-medium text-zinc-300 truncate max-w-[140px]">{candidateName}</span>
+        <div className="mt-1.5 pt-1.5 border-t border-zinc-850 flex items-center justify-between text-[10px] text-zinc-400 px-0.5">
+          <div className="flex items-center space-x-1 truncate max-w-[130px]">
+            <span className="h-1 w-1 rounded-full bg-indigo-400 shrink-0" />
+            <span className="font-medium text-zinc-300 truncate">{candidateName}</span>
           </div>
           <button
             onClick={() => {
@@ -401,9 +396,9 @@ export const ProctoringCam: React.FC<ProctoringCamProps> = ({
                 initCamera();
               }
             }}
-            className="text-[10px] text-indigo-400 hover:text-indigo-300 font-medium underline"
+            className="text-[9px] text-indigo-400 hover:text-indigo-300 font-medium underline shrink-0"
           >
-            {hasPermission ? 'Turn Off Cam' : 'Retry Cam'}
+            {hasPermission ? 'Turn Off' : 'Retry'}
           </button>
         </div>
       </div>
