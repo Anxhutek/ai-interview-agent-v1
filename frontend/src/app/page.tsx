@@ -45,6 +45,8 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [proctoringWarnings, setProctoringWarnings] = useState(0);
   const [showGraphTab, setShowGraphTab] = useState(false);
+  const [scratchpadText, setScratchpadText] = useState('');
+  const [showRightPanel, setShowRightPanel] = useState(true);
 
   // Sync user profile data to form fields when user logs in
   useEffect(() => {
@@ -109,8 +111,8 @@ export default function Home() {
   };
 
   return (
-    <main className={`relative w-full flex flex-col items-center bg-[#09090b] ${
-      stage === 'chat' ? 'h-screen overflow-hidden' : 'min-h-screen p-4 md:p-8 overflow-x-hidden'
+    <main className={`relative w-screen bg-[#09090b] text-zinc-100 ${
+      stage === 'chat' ? 'h-screen flex flex-col overflow-hidden' : 'min-h-screen flex flex-col items-center p-4 md:p-8 overflow-x-hidden'
     }`}>
       {/* Background Glows */}
       <div className="radial-glow top-[-100px] left-[-100px]" />
@@ -121,8 +123,8 @@ export default function Home() {
       <ProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
 
       {/* Header */}
-      <header className={`relative z-10 w-full shrink-0 flex items-center justify-between border-b border-zinc-800/60 ${
-        stage === 'chat' ? 'h-14 px-4 md:px-6 max-w-[1500px]' : 'py-4 max-w-6xl mb-6'
+      <header className={`relative z-10 w-full shrink-0 flex items-center justify-between border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-md ${
+        stage === 'chat' ? 'h-14 px-4 md:px-6' : 'py-4 max-w-6xl mb-6'
       }`}>
         <div className="flex items-center space-x-3">
           <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
@@ -353,11 +355,11 @@ export default function Home() {
         </section>
       )}
 
-      {/* STAGE 2: ACTIVE CONVERSATIONAL CHAT - VIEWPORT FITTED & SPACE OPTIMIZED */}
+      {/* STAGE 2: ACTIVE CONVERSATIONAL CHAT - 3-COLUMN FULL-BLEED WORKSPACE */}
       {stage === 'chat' && (
-        <section className="flex-1 min-h-0 w-full max-w-[1500px] p-2.5 md:p-3.5 grid grid-cols-1 lg:grid-cols-[270px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)] gap-3.5 overflow-hidden animate-slide-up">
-          {/* Left Sidebar (Proctoring Feed, Context & Progress) */}
-          <div className="flex flex-col gap-2.5 h-full min-h-0 overflow-y-auto lg:overflow-visible shrink-0">
+        <div className="flex-1 min-h-0 w-full flex overflow-hidden p-2.5 gap-2.5 animate-slide-up">
+          {/* Left Sidebar (Proctoring Feed, Context & Progress) - Full bleed start */}
+          <aside className="w-[260px] xl:w-[270px] shrink-0 h-full flex flex-col gap-2.5 min-h-0 overflow-y-auto custom-scrollbar">
             {/* Live Proctoring Webcam - Compact Docked Card */}
             <ProctoringCam
               sessionId={sessionId || 'session'}
@@ -468,12 +470,12 @@ export default function Home() {
                 <span>View Final Report</span>
               </button>
             )}
-          </div>
+          </aside>
 
-          {/* Right Main Stage (Chat & Response Console) */}
-          <div className="flex flex-col h-full min-h-0 glass-card rounded-2xl border border-zinc-800 bg-zinc-950/60 overflow-hidden shadow-2xl">
+          {/* Center Main Stage (Chat & Response Console) - Takes Full Remaining Width */}
+          <div className="flex-1 min-w-0 h-full flex flex-col glass-card rounded-xl border border-zinc-800 bg-zinc-950/60 overflow-hidden shadow-2xl">
             {/* Chat Header */}
-            <div className="px-5 py-3 border-b border-zinc-800/80 bg-zinc-900/60 backdrop-blur-md flex items-center justify-between shrink-0">
+            <div className="px-5 py-2.5 border-b border-zinc-800/80 bg-zinc-900/60 backdrop-blur-md flex items-center justify-between shrink-0">
               <div className="flex items-center space-x-2.5">
                 <span className={`h-2.5 w-2.5 rounded-full ${isFinished ? 'bg-emerald-500' : 'bg-indigo-500 animate-pulse'}`} />
                 <h3 className="font-semibold text-xs md:text-sm text-zinc-100 font-outfit">
@@ -481,22 +483,41 @@ export default function Home() {
                 </h3>
               </div>
 
-              {/* Submission State Banner */}
-              {submissionState === 'saving' && (
-                <span className="text-[11px] text-indigo-400 font-medium flex items-center space-x-1.5 bg-indigo-950/60 px-2 py-0.5 rounded-full border border-indigo-900/50 animate-pulse">
-                  <svg className="animate-spin h-2.5 w-2.5 text-indigo-400" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  <span>Saving response...</span>
-                </span>
-              )}
+              <div className="flex items-center space-x-2">
+                {/* Submission State Banner */}
+                {submissionState === 'saving' && (
+                  <span className="text-[11px] text-indigo-400 font-medium flex items-center space-x-1.5 bg-indigo-950/60 px-2 py-0.5 rounded-full border border-indigo-900/50 animate-pulse">
+                    <svg className="animate-spin h-2.5 w-2.5 text-indigo-400" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    <span>Saving...</span>
+                  </span>
+                )}
 
-              {submissionState === 'saved' && (
-                <span className="text-[11px] text-emerald-400 font-medium flex items-center space-x-1 bg-emerald-950/50 px-2 py-0.5 rounded-full border border-emerald-900/40 animate-fade-in">
-                  <span>✓ Saved</span>
-                </span>
-              )}
+                {submissionState === 'saved' && (
+                  <span className="text-[11px] text-emerald-400 font-medium flex items-center space-x-1 bg-emerald-950/50 px-2 py-0.5 rounded-full border border-emerald-900/40 animate-fade-in">
+                    <span>✓ Saved</span>
+                  </span>
+                )}
+
+                {/* Right Panel Toggle on Medium/Large screens */}
+                <button
+                  type="button"
+                  onClick={() => setShowRightPanel((prev) => !prev)}
+                  className={`hidden lg:flex items-center space-x-1 px-2.5 py-1 text-[11px] rounded-lg border transition-all ${
+                    showRightPanel
+                      ? 'bg-indigo-950/60 border-indigo-800/60 text-indigo-300'
+                      : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                  }`}
+                  title="Toggle Notes & Telemetry Panel"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span>{showRightPanel ? 'Hide Notes' : 'Show Notes'}</span>
+                </button>
+              </div>
             </div>
 
             {/* Conversation Area — Natural Top-Aligned Stacking with bounded max-width */}
@@ -585,7 +606,7 @@ export default function Home() {
             {/* Sleek Bottom Composer Capsule */}
             <form
               onSubmit={handleSend}
-              className="shrink-0 p-3 md:p-4 border-t border-zinc-800/80 bg-zinc-900/60 backdrop-blur-md"
+              className="shrink-0 p-3 md:p-3.5 border-t border-zinc-800/80 bg-zinc-900/60 backdrop-blur-md"
             >
               <div className="relative flex items-center bg-zinc-950/90 border border-zinc-800 focus-within:border-indigo-500/80 focus-within:ring-1 focus-within:ring-indigo-500/50 rounded-2xl p-2 transition-all shadow-inner">
                 <textarea
@@ -633,7 +654,100 @@ export default function Home() {
               </div>
             </form>
           </div>
-        </section>
+
+          {/* Right Intelligence Panel (Question Metadata, Scratchpad & Telemetry) */}
+          {showRightPanel && (
+            <aside className="hidden lg:flex w-[290px] xl:w-[310px] 2xl:w-[330px] shrink-0 h-full flex-col gap-2.5 min-h-0 overflow-y-auto custom-scrollbar animate-fade-in">
+              {/* Question Metadata Card */}
+              <div className="glass-card rounded-xl p-3 border border-zinc-800 bg-zinc-950/80 shadow-sm flex flex-col gap-2 shrink-0">
+                <div className="flex items-center justify-between pb-1.5 border-b border-zinc-850">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 font-outfit">
+                    QUESTION INSIGHTS
+                  </span>
+                  <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-violet-950/80 border border-violet-900/60 text-violet-300">
+                    Senior Level
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <div className="p-2 rounded-lg bg-zinc-900/60 border border-zinc-855">
+                    <span className="text-[9px] text-zinc-500 uppercase tracking-wider block font-mono">Category</span>
+                    <span className="font-semibold text-zinc-200 truncate block">{currentTopic || 'System Architecture'}</span>
+                  </div>
+                  <div className="p-2 rounded-lg bg-zinc-900/60 border border-zinc-855">
+                    <span className="text-[9px] text-zinc-500 uppercase tracking-wider block font-mono">Est. Time</span>
+                    <span className="font-semibold text-indigo-400 block font-mono">3–5 Mins</span>
+                  </div>
+                </div>
+
+                <div className="pt-1.5 border-t border-zinc-850 flex items-center justify-between text-[10px] text-zinc-400">
+                  <span>Target Competency</span>
+                  <span className="font-medium text-zinc-300">Distributed Scalability</span>
+                </div>
+              </div>
+
+              {/* Real-time Candidate Scratchpad / Code Notes */}
+              <div className="glass-card rounded-xl p-3 border border-zinc-800 bg-zinc-950/80 shadow-sm flex-1 flex flex-col min-h-[190px]">
+                <div className="flex items-center justify-between pb-1.5 border-b border-zinc-850 mb-2">
+                  <div className="flex items-center space-x-1.5">
+                    <svg className="w-3.5 h-3.5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 font-outfit">
+                      SCRATCHPAD / NOTES
+                    </span>
+                  </div>
+                  {scratchpadText.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setScratchpadText('')}
+                      className="text-[9px] text-zinc-500 hover:text-red-400 underline font-mono"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
+                <textarea
+                  value={scratchpadText}
+                  onChange={(e) => setScratchpadText(e.target.value)}
+                  placeholder="Draft system design thoughts, pseudocode algorithms, or calculation notes here during the question..."
+                  className="flex-1 w-full bg-zinc-900/60 border border-zinc-800/80 focus:border-indigo-500/80 rounded-lg p-2.5 text-xs text-zinc-200 placeholder-zinc-500 resize-none outline-none custom-scrollbar leading-relaxed font-mono"
+                />
+
+                <div className="mt-1.5 pt-1 border-t border-zinc-850 flex items-center justify-between text-[9px] text-zinc-500 font-mono">
+                  <span>Candidate Workspace</span>
+                  <span>{scratchpadText.length} chars</span>
+                </div>
+              </div>
+
+              {/* AI Guard Live Telemetry HUD */}
+              <div className="glass-card rounded-xl p-3 border border-zinc-800 bg-zinc-950/80 shadow-sm flex flex-col gap-1.5 shrink-0">
+                <div className="flex items-center justify-between pb-1.5 border-b border-zinc-850">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 font-outfit">
+                    AI GUARD TELEMETRY
+                  </span>
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                </div>
+
+                <div className="space-y-1.5 text-[10px]">
+                  <div className="flex items-center justify-between">
+                    <span className="text-zinc-400">Face Biometrics</span>
+                    <span className="text-emerald-400 font-medium">1 Subject Locked</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-zinc-400">Eye-Tracking Vector</span>
+                    <span className="text-emerald-400 font-medium font-mono">Angle: 0.0° (Center)</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-zinc-400">Acoustic Feed</span>
+                    <span className="text-zinc-300 font-medium">Clear / Clean Voice</span>
+                  </div>
+                </div>
+              </div>
+            </aside>
+          )}
+        </div>
       )}
 
       {/* STAGE 3: GENERATING REPORT TRANSITION */}
@@ -672,7 +786,7 @@ export default function Home() {
 
       {/* STAGE 4: FINAL REPORT DASHBOARD */}
       {stage === 'report' && finalReport && (
-        <section className="relative z-10 w-full max-w-6xl flex-grow flex flex-col space-y-6 animate-slide-up">
+        <section className="relative z-10 w-full max-w-6xl flex-grow flex flex-col space-y-6 animate-slide-up p-4 md:p-6 overflow-y-auto custom-scrollbar">
           {/* Top Bar: Tabs & Actions */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center space-x-2">
@@ -964,11 +1078,24 @@ export default function Home() {
         </section>
       )}
 
-      {/* Footer */}
-      <footer className="relative z-10 w-full max-w-6xl text-center py-4 border-t border-zinc-900/60 mt-8">
-        <p className="text-[10px] text-zinc-600">
-          The Interview Agent v2.5 &bull; AI Evaluation Engine &amp; Live Proctoring Protocol.
-        </p>
+      {/* Global Thin Bottom Status Bar - Full Width Anchored */}
+      <footer className="h-7 shrink-0 w-full border-t border-zinc-800/80 bg-zinc-950/95 px-4 flex items-center justify-between text-[10px] text-zinc-500 font-mono select-none z-20">
+        <div className="flex items-center space-x-2 truncate">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+          <span className="text-zinc-400 truncate">
+            {stage === 'chat' ? `SESSION: ${sessionId || 'active'} · LIVE PROCTORING` : 'AI INTERVIEW PLATFORM v2.5'}
+          </span>
+        </div>
+        <div className="hidden md:flex items-center space-x-2 text-zinc-500">
+          <span>The Interview Agent</span>
+          <span>&bull;</span>
+          <span>Autonomous AI Evaluation Engine</span>
+        </div>
+        <div className="flex items-center space-x-2">
+          <span className="text-emerald-400">● 24ms</span>
+          <span className="hidden sm:inline text-zinc-600">|</span>
+          <span className="hidden sm:inline text-zinc-400">Secure TLS</span>
+        </div>
       </footer>
     </main>
   );

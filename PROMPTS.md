@@ -93,13 +93,20 @@ THE MAIN INTERVIEW PANEL HAS TOO MUCH EMPTY VERTICAL SPACE.
 11. PROGRESS: Dot stepper, AI Guard, Integrity.
 ```
 
+### User Prompt:
+```
+Ye lijiye complete prompt — is baar teeno specific empty space issues ke saath (jo aapne screenshot mein point out kiye):
+Problem 1: Bottom footer ke neeche bahut zyada khali space (~200px+ black dead space)
+Problem 2: Left sidebar aur browser edge ke beech gutter space
+Problem 3: Chat panel ke right side mein bahut bada unused area (~350-400px on 1920x1080)
+Fix: Full-bleed h-screen w-screen flex layout, tight thin bottom status bar, and 3-column dashboard with live scratchpad / question insights / AI telemetry.
+```
+
 ### Agent Internal Instructions / Sub-tasks:
-1. Re-structured the Main Interview Panel conversation area with `flex-1 min-h-0 overflow-y-auto p-5 md:p-6 flex flex-col items-start justify-start gap-4` to eliminate artificial centering or space-between gaps.
-2. Implemented bounded message bubble widths (`max-w-[780px] xl:max-w-[850px]` for AI question; `max-w-[720px] xl:max-w-[780px]` for Candidate response) so messages look like conversational dialogues rather than full-width banners.
-3. Redesigned the Answer Composer as a sleek bottom capsule (`shrink-0 p-3 md:p-4 border-t border-zinc-800/80 bg-zinc-900/60 backdrop-blur-md`) with integrated voice transcription mic button, primary gradient Send button, and keyboard Enter submission.
-4. Compacted the Left Sidebar (~270px width) with 3 streamlined cards:
-   - Camera: Primary `[ Allow Camera ]` button, secondary `[ Simulate ]` button, and live gaze HUD.
-   - Session Context: Clean uppercase candidate name, current topic, and target role.
-   - Progress: Question counter (`1 / 8`), dot stepper, AI Guard status, and Integrity indicator.
-5. Verified Next.js compilation (`npm run build`) with zero errors and deployed to VPS (`http://168.144.189.164:8081`).
+1. Replaced bounded page containers with a full-bleed `w-screen h-screen flex flex-col overflow-hidden bg-[#09090b]` root shell.
+2. Removed left/right gutter gaps so the Left Sidebar (`w-[270px]`) starts cleanly from the left viewport edge with consistent padding.
+3. Created a dedicated Right Intelligence & Scratchpad Panel (`hidden lg:flex w-[290px] xl:w-[310px] 2xl:w-[330px]`) with live Question Metadata, Candidate Interactive Scratchpad (with character count & clear button), and AI Guard Biometric Telemetry HUD, perfectly utilizing 1920x1080 and ultrawide screens.
+4. Created a fixed, anchored thin bottom status bar (`h-7 shrink-0`) with live session status, protocol badge, and latency metrics, completely eliminating the 200px bottom void.
+5. Tested Next.js production compilation (`npm run build`) and deployed to VPS (`http://168.144.189.164:8081`).
+
 
